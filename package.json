@@ -20,6 +20,7 @@
     "@tsonic/csharp-nodejs": "file:../csharp-nodejs",
     "@tsonic/csharp-runtime": "file:../csharp-runtime",
     "@tsonic/host": "file:../tsonic/packages/host",
+    "@tsonic/js-source-profile": "file:../tsonic/packages/js-source-profile",
     "@tsonic/source-core": "file:../tsonic/packages/source-core",
     "@tsonic/target-api": "file:../tsonic/packages/target-api",
     "@tsonic/target-csharp": "file:../tsonic-csharp",
