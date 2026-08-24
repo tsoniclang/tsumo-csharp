@@ -1,7 +1,7 @@
-import { Directory, Path } from "@tsonic/dotnet/System.IO.js";
+import { relative } from "node:path";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../diagnostics.js";
-import { listFilesRecursive } from "../fs.js";
+import { dirExists, listFilesRecursive } from "../fs.js";
 import { compareText, substringCount, trimEndChar, trimStartChar } from "../utils/strings.js";
 import { combineUrlPath } from "../utils/url-path.js";
 import { DocsMountConfig } from "./models.js";
@@ -116,7 +116,7 @@ const assertUniqueOutput = (
 };
 
 export const discoverDocsMountRoutes = (mount: DocsMountConfig): DocsMountRoutes => {
-  if (!Directory.Exists(mount.sourceDir)) {
+  if (!dirExists(mount.sourceDir)) {
     throw createTsumoError("TSUMO_DOCS_MOUNT_MISSING", `Docs mount not found: ${mount.sourceDir}`);
   }
 
@@ -129,7 +129,7 @@ export const discoverDocsMountRoutes = (mount: DocsMountConfig): DocsMountRoutes
 
   for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
     const sourcePath = files[fileIndex]!;
-    const relPath = normalizeSlashes(Path.GetRelativePath(mount.sourceDir, sourcePath));
+    const relPath = normalizeSlashes(relative(mount.sourceDir, sourcePath));
     if (relPath === "" || relPath === ".." || relPath.startsWith("../")) {
       throw createTsumoError("TSUMO_DOCS_SOURCE_PATH_INVALID", `Docs source is outside its mount: ${sourcePath}`);
     }

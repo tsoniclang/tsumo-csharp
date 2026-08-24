@@ -1,8 +1,9 @@
-import { Uri, UriKind } from "@tsonic/dotnet/System.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { parse as parseNodeUrl } from "node:url";
 import { createTsumoError } from "../../diagnostics.js";
 import { substringCount, substringFrom } from "../../utils/strings.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import { AnyArrayValue, BoolValue, DateValue, DictValue, HtmlValue, NilValue, NumberValue, StringValue, TemplateValue } from "../values.js";
+import { ParsedUrl } from "../values/url.js";
 
 export const getPathExtension = (path: string): string => {
   const lastDot = path.lastIndexOf(".");
@@ -20,59 +21,58 @@ export const toJson = (value: TemplateValue): string => {
   if (value instanceof HtmlValue) return toJsonString(value.value.value);
   if (value instanceof AnyArrayValue) {
     const items = value.value;
-    const sb = new StringBuilder();
-    sb.Append("[");
+    const sb = new TextBuilder();
+    sb.append("[");
     let first = true;
     for (let i = 0; i < items.length; i++) {
-      if (!first) sb.Append(",");
+      if (!first) sb.append(",");
       first = false;
-      sb.Append(toJson(items[i]!));
+      sb.append(toJson(items[i]!));
     }
-    sb.Append("]");
-    return sb.ToString();
+    sb.append("]");
+    return sb.toString();
   }
   if (value instanceof DictValue) {
-    const sb = new StringBuilder();
-    sb.Append("{");
+    const sb = new TextBuilder();
+    sb.append("{");
     let first = true;
     for (const k of value.value.keys()) {
       const v = value.value.get(k);
       if (v === undefined) continue;
-      if (!first) sb.Append(",");
+      if (!first) sb.append(",");
       first = false;
-      sb.Append(toJsonString(k));
-      sb.Append(":");
-      sb.Append(toJson(v));
+      sb.append(toJsonString(k));
+      sb.append(":");
+      sb.append(toJson(v));
     }
-    sb.Append("}");
-    return sb.ToString();
+    sb.append("}");
+    return sb.toString();
   }
   return "null";
 };
 
 export const toJsonString = (value: string): string => {
-  const sb = new StringBuilder();
-  sb.Append("\"");
+  const sb = new TextBuilder();
+  sb.append("\"");
   for (let i = 0; i < value.length; i++) {
     const ch = substringCount(value, i, 1);
-    if (ch === "\\") sb.Append("\\\\");
-    else if (ch === "\"") sb.Append("\\\"");
-    else if (ch === "\n") sb.Append("\\n");
-    else if (ch === "\r") sb.Append("\\r");
-    else if (ch === "\t") sb.Append("\\t");
-    else sb.Append(ch);
+    if (ch === "\\") sb.append("\\\\");
+    else if (ch === "\"") sb.append("\\\"");
+    else if (ch === "\n") sb.append("\\n");
+    else if (ch === "\r") sb.append("\\r");
+    else if (ch === "\t") sb.append("\\t");
+    else sb.append(ch);
   }
-  sb.Append("\"");
-  return sb.ToString();
+  sb.append("\"");
+  return sb.toString();
 };
 
-export const parseUrl = (value: string): Uri => {
+export const parseUrl = (value: string): ParsedUrl => {
   const trimmed = value.trim();
-  try {
-    return new Uri(trimmed, UriKind.RelativeOrAbsolute);
-  } catch (_error) {
+  if (trimmed.includes("\0")) {
     throw createTsumoError("TSUMO_TEMPLATE_URL_INVALID", `Invalid URL: ${value}`);
   }
+  return new ParsedUrl(trimmed, parseNodeUrl(trimmed));
 };
 
 export const trimStartCharacter = (value: string, ch: string): string => {

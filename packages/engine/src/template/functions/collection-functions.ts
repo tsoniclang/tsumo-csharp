@@ -1,4 +1,4 @@
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { PageContext } from "../../models.js";
@@ -425,7 +425,7 @@ export const callCollectionFunction = (
     const v = args[0]!;
     const s = toPlainString(v);
     // Deterministic markup stripping for Tsumo's plainify subset.
-    const sb = new StringBuilder();
+    const sb = new TextBuilder();
     let inTag = false;
     for (let i: int32 = 0; i < s.length; i = nextCodePointIndex(s, i)) {
       const ch = codePointAtText(s, i);
@@ -437,9 +437,9 @@ export const callCollectionFunction = (
         inTag = false;
         continue;
       }
-      if (!inTag) sb.Append(ch);
+      if (!inTag) sb.append(ch);
     }
-    return new StringValue(sb.ToString());
+    return new StringValue(sb.toString());
   }
 
   if (name === "cond" && args.length >= 3) {

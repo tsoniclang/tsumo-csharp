@@ -1,7 +1,10 @@
 import { Buffer } from "node:buffer";
-import { Environment, Guid } from "@tsonic/dotnet/System.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { env } from "node:process";
 import { createTsumoError } from "../diagnostics.js";
+import { fileExists, readTextFile } from "../fs.js";
 import { Resource } from "./models.js";
 import { runExternalProcess } from "./external-process.js";
 import { splitResourceFileName, splitResourcePath } from "./paths.js";
@@ -75,25 +78,21 @@ export const buildJavaScriptResource = (
     );
   }
 
-  const configuredExecutable = Environment.GetEnvironmentVariable("TSUMO_ESBUILD");
+  const configuredExecutable = env["TSUMO_ESBUILD"];
   const executable = configuredExecutable !== undefined && configuredExecutable.trim() !== ""
     ? configuredExecutable.trim()
     : "esbuild";
-  const workDirectory = Path.Combine(
-    Path.GetTempPath(),
-    `tsumo-esbuild-${Guid.NewGuid().ToString("n")}`,
-  );
-  Directory.CreateDirectory(workDirectory);
+  const workDirectory = mkdtempSync(join(tmpdir(), "tsumo-esbuild-"));
 
   try {
-    let inputPath = Path.Combine(workDirectory, "input" + sourceExtension(resource));
+    let inputPath = join(workDirectory, "input" + sourceExtension(resource));
     const sourcePath = resource.sourcePath;
-    if (sourcePath !== undefined && File.Exists(sourcePath) && File.ReadAllText(sourcePath) === sourceText) {
+    if (sourcePath !== undefined && fileExists(sourcePath) && readTextFile(sourcePath) === sourceText) {
       inputPath = sourcePath;
     } else {
-      File.WriteAllText(inputPath, sourceText);
+      writeFileSync(inputPath, sourceText, "utf8");
     }
-    const outputPath = Path.Combine(workDirectory, "output.js");
+    const outputPath = join(workDirectory, "output.js");
     const argumentsList: string[] = [
       inputPath,
       "--bundle",
@@ -109,8 +108,8 @@ export const buildJavaScriptResource = (
     if (jsxFactory !== undefined) argumentsList.push(`--jsx-factory=${jsxFactory}`);
     const paramsJson = options.paramsJson;
     if (paramsJson !== undefined) {
-      const paramsPath = Path.Combine(workDirectory, "params.json");
-      File.WriteAllText(paramsPath, paramsJson);
+      const paramsPath = join(workDirectory, "params.json");
+      writeFileSync(paramsPath, paramsJson, "utf8");
       argumentsList.push(`--alias:@params=${paramsPath}`);
     }
 
@@ -121,11 +120,11 @@ export const buildJavaScriptResource = (
         process.standardError === "" ? `esbuild failed with exit code ${process.exitCode}` : process.standardError,
       );
     }
-    if (!File.Exists(outputPath)) {
+    if (!existsSync(outputPath)) {
       throw createTsumoError("TSUMO_ESBUILD_OUTPUT_MISSING", "esbuild completed without producing JavaScript");
     }
 
-    const text = File.ReadAllText(outputPath);
+    const text = readFileSync(outputPath, "utf8");
     return new Resource(
       `${resource.id}|js-build:${options.cacheKey()}`,
       resource.sourcePath,
@@ -137,6 +136,6 @@ export const buildJavaScriptResource = (
       "application/javascript",
     );
   } finally {
-    if (Directory.Exists(workDirectory)) Directory.Delete(workDirectory, true);
+    rmSync(workDirectory, { recursive: true, force: true });
   }
 };

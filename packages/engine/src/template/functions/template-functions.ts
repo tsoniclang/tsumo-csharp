@@ -1,7 +1,5 @@
-import { Console } from "@tsonic/dotnet/System.js";
-import { WebUtility } from "@tsonic/dotnet/System.Net.js";
 import { createTsumoError } from "../../diagnostics.js";
-import { HtmlString, escapeHtml } from "../../utils/html.js";
+import { HtmlString, decodeHtml, escapeHtml } from "../../utils/html.js";
 import { replaceText, substringFrom } from "../../utils/strings.js";
 import { PartialTemplateResolution } from "../environment.js";
 import {
@@ -133,7 +131,7 @@ export const callTemplateFunctionFamily = (
       message = message.replaceAll("%v", toPlainString(args[i]!));
       message = message.replaceAll("%d", toPlainString(args[i]!));
     }
-    Console.Error.WriteLine("WARN: {0}", message);
+    console.warn(`WARN: ${message}`);
     return nil;
   }
 
@@ -171,7 +169,7 @@ export const callTemplateFunctionFamily = (
 
   if (name === "htmlunescape" && args.length >= 1) {
     const v = args[0]!;
-    return new StringValue(WebUtility.HtmlDecode(toPlainString(v)) ?? "");
+    return new StringValue(decodeHtml(toPlainString(v)));
   }
 
   if (name === "time.format" && args.length >= 2) {

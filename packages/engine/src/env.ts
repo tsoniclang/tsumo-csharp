@@ -1,7 +1,7 @@
 import { LayoutEnvironment } from "./layouts.js";
 import { ResourceManager } from "./resources.js";
 import { ModuleMount } from "./models.js";
-import { Environment } from "@tsonic/dotnet/System.js";
+import { env } from "node:process";
 import { fileExists } from "./fs.js";
 import { resolveContainedResourcePath } from "./resources/paths.js";
 import { loadSiteData } from "./template/data-loader.js";
@@ -25,7 +25,7 @@ export class BuildEnvironment extends LayoutEnvironment {
   }
 
   getEnvironmentVariable(name: string): string | undefined {
-    return Environment.GetEnvironmentVariable(name) ?? undefined;
+    return env[name];
   }
 
   sourceFileExists(path: string): boolean {

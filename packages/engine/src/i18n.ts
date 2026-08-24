@@ -1,4 +1,4 @@
-import { Path } from "@tsonic/dotnet/System.IO.js";
+import { basename, extname } from "node:path";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "./diagnostics.js";
 import { listFilesTopDirectory, readTextFile } from "./fs.js";
@@ -176,13 +176,14 @@ export class I18nStore {
     const layer = new Map<string, Map<string, I18nMessage>>();
     for (let index: int32 = 0; index < files.length; index++) {
       const file = files[index]!;
-      const extension = (Path.GetExtension(file) ?? "").toLowerCase();
+      const extension = extname(file).toLowerCase();
       let format = "";
       if (extension === ".yaml" || extension === ".yml") format = "yaml";
       else if (extension === ".toml") format = "toml";
       else if (extension === ".json") format = "json";
       else continue;
-      const fileName = Path.GetFileNameWithoutExtension(file) ?? "";
+      const fullFileName = basename(file);
+      const fileName = fullFileName.slice(0, fullFileName.length - extension.length);
       if (fileName === "") continue;
       const language = fileName.toLowerCase();
       let languageLayer = layer.get(language);

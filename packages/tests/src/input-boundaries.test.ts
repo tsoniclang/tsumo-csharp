@@ -1,6 +1,5 @@
 import { attribute } from "@tsonic/core/lang.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
-import { Exception } from "@tsonic/dotnet/System.js";
+import { join } from "node:path";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
 
 import {
@@ -17,7 +16,7 @@ import {
   parseTomlConfig,
   parseYamlConfig,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 
 const captureDiagnostic = (operation: () => void): TsumoDiagnostic => {
   try {
@@ -26,7 +25,7 @@ const captureDiagnostic = (operation: () => void): TsumoDiagnostic => {
     if (error instanceof TsumoError) return error.diagnostic;
     throw error;
   }
-  throw new Exception("Expected a Tsumo diagnostic");
+  throw new Error("Expected a Tsumo diagnostic");
 };
 
 const assertFrontMatterModel = (source: string): void => {
@@ -56,10 +55,10 @@ export class InputBoundaryTests {
   json_tree_preserves_unicode_kinds_and_source_locations(): void {
     const value = parseJson("{\n  \"title\": \"Caf\\u00e9 \\ud83d\\ude80\"\n}", "config.json");
     Assert.True(value instanceof JsonObject);
-    if (!(value instanceof JsonObject)) throw new Exception("Expected JSON object");
+    if (!(value instanceof JsonObject)) throw new Error("Expected JSON object");
     const title = value.get("title");
     Assert.True(title instanceof JsonString);
-    if (!(title instanceof JsonString)) throw new Exception("Expected JSON string");
+    if (!(title instanceof JsonString)) throw new Error("Expected JSON string");
     Assert.Equal("Café 🚀", title.value);
     Assert.Equal(2, title.line);
     Assert.Equal(12, title.column);
@@ -70,7 +69,7 @@ export class InputBoundaryTests {
     for (let index = 0; index < 27000; index++) entries.push("0");
     const value = parseJson(`[${entries.join(",")}]`, "large.json");
     Assert.True(value instanceof JsonArray);
-    if (!(value instanceof JsonArray)) throw new Exception("Expected JSON array");
+    if (!(value instanceof JsonArray)) throw new Error("Expected JSON array");
     Assert.Equal(27000, value.items.length);
   }
 
@@ -214,7 +213,7 @@ export class InputBoundaryTests {
     const yamlMenu = yaml.Menus.get("main");
     const jsonMenu = json.Menus.get("main");
     Assert.True(tomlMenu !== undefined && yamlMenu !== undefined && jsonMenu !== undefined);
-    if (tomlMenu === undefined || yamlMenu === undefined || jsonMenu === undefined) throw new Exception("Expected main menus");
+    if (tomlMenu === undefined || yamlMenu === undefined || jsonMenu === undefined) throw new Error("Expected main menus");
     assertConfigModel(toml.title, toml.baseURL, tomlFeatured !== undefined && tomlFeatured.boolValue, tomlMenu[0]!.name);
     assertConfigModel(yaml.title, yaml.baseURL, yamlFeatured !== undefined && yamlFeatured.boolValue, yamlMenu[0]!.name);
     assertConfigModel(json.title, json.baseURL, jsonFeatured !== undefined && jsonFeatured.boolValue, jsonMenu[0]!.name);
@@ -298,19 +297,19 @@ export class InputBoundaryTests {
   split_configuration_has_one_deterministic_merge_contract(): void {
     const site = createTestDirectory("split-config");
     try {
-      const configDir = Path.Combine(site, "config", "_default");
-      Directory.CreateDirectory(configDir);
-      File.WriteAllText(Path.Combine(configDir, "hugo.toml"), "title = 'Example'\nbaseURL = 'https://example.test'");
-      File.WriteAllText(Path.Combine(configDir, "params.yaml"), "message: \"Hello # retained\" # removed");
-      File.WriteAllText(Path.Combine(configDir, "languages.toml"), [
+      const configDir = join(site, "config", "_default");
+      createDirectory(configDir);
+      writeTextFile(join(configDir, "hugo.toml"), "title = 'Example'\nbaseURL = 'https://example.test'");
+      writeTextFile(join(configDir, "params.yaml"), "message: \"Hello # retained\" # removed");
+      writeTextFile(join(configDir, "languages.toml"), [
         "[en]",
         "languageName = 'English'",
         "languageDirection = 'rtl'",
         "contentDir = 'content/custom'",
         "weight = 4",
       ].join("\n"));
-      File.WriteAllText(Path.Combine(configDir, "languages.en.toml"), "weight = 1");
-      File.WriteAllText(Path.Combine(configDir, "module.toml"), [
+      writeTextFile(join(configDir, "languages.en.toml"), "weight = 1");
+      writeTextFile(join(configDir, "module.toml"), [
         "[[mounts]]",
         "source = 'shared'",
         "target = 'content'",
@@ -328,12 +327,12 @@ export class InputBoundaryTests {
       Assert.Equal(1, loaded.moduleMounts.length);
       Assert.Equal("shared", loaded.moduleMounts[0]!.source);
 
-      File.WriteAllText(Path.Combine(configDir, "params.yaml"), "message: first\nMessage: second");
+      writeTextFile(join(configDir, "params.yaml"), "message: first\nMessage: second");
       Assert.Equal("TSUMO_CONFIG_DUPLICATE_FIELD", captureDiagnostic(() => {
         loadSiteConfig(site);
       }).code);
-      File.WriteAllText(Path.Combine(configDir, "params.yaml"), "message: first");
-      File.WriteAllText(Path.Combine(configDir, "config.yaml"), "title: Other");
+      writeTextFile(join(configDir, "params.yaml"), "message: first");
+      writeTextFile(join(configDir, "config.yaml"), "title: Other");
       Assert.Equal("TSUMO_CONFIG_FILE_AMBIGUOUS", captureDiagnostic(() => {
         loadSiteConfig(site);
       }).code);

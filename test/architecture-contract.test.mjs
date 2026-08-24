@@ -68,6 +68,81 @@ test("product source does not bypass shared recursive filesystem traversal", () 
   assert.deepEqual(violations, []);
 });
 
+test("filesystem calls use standard Node option objects", () => {
+  const violations = sourceFiles.flatMap((path) => {
+    const text = readFileSync(join(repoRoot, path), "utf8");
+    return /\b(?:mkdirSync|rmSync)\([^\n,]+,\s*(?:true|false)\s*\)/u.test(text)
+      ? [`${path}: uses a provider-private boolean filesystem overload`]
+      : [];
+  });
+  assert.deepEqual(violations, []);
+});
+
+test("target-native dependencies stay behind explicit C# platform boundaries", () => {
+  const markdigModule = /^@tsonic\/dotnet\/Markdig(?:\.[A-Za-z0-9_.]+)?\.js$/u;
+  const allowedModulesByProductFile = new Map([
+    ["packages/engine/src/docs/markdown.ts", markdigModule],
+    ["packages/engine/src/markdown/pipeline.ts", markdigModule],
+    ["packages/engine/src/markdown/render-basic.ts", markdigModule],
+    [
+      "packages/engine/src/markdown/render-hooks.ts",
+      /^(?:@tsonic\/dotnet\/Markdig(?:\.[A-Za-z0-9_.]+)?|@tsonic\/dotnet\/System\.(?:IO|Text))\.js$/u,
+    ],
+    ["packages/engine/src/markdown/render-with-shortcodes.ts", markdigModule],
+    ["packages/engine/src/markdown/toc.ts", markdigModule],
+    ["packages/engine/src/resources/image-provider.ts", /^@tsonic\/dotnet\/PhotoSauce\.[A-Za-z0-9_.]+\.js$/u],
+    ["packages/engine/src/utils/html.ts", /^@tsonic\/dotnet\/System\.Net\.js$/u],
+    ["packages/engine/src/utils/text-builder.ts", /^@tsonic\/dotnet\/System\.Text\.js$/u],
+  ]);
+  const violations = [];
+  for (const path of productSourceFiles) {
+    const text = readFileSync(join(repoRoot, path), "utf8");
+    for (const match of text.matchAll(/(?:from\s+|import\s*\()\s*["'](@tsonic\/dotnet\/[^"']+)["']/gu)) {
+      const allowedModule = allowedModulesByProductFile.get(path);
+      if (allowedModule === undefined || !allowedModule.test(match[1])) {
+        violations.push(`${path}: imports ${match[1]} outside a C# platform boundary`);
+      }
+    }
+    if (
+      !allowedModulesByProductFile.has(path) &&
+      /\b(?:JsonDocument|JsonElement|MagicImageProcessor|MarkdownDocument|Regex|StringBuilder|WebUtility)\b/u.test(text)
+    ) {
+      violations.push(`${path}: references a C# platform type outside its boundary`);
+    }
+  }
+  for (const path of sourceFiles.filter((candidate) => candidate.startsWith("packages/tests/src/"))) {
+    const text = readFileSync(join(repoRoot, path), "utf8");
+    for (const match of text.matchAll(/(?:from\s+|import\s*\()\s*["'](@tsonic\/dotnet\/[^"']+)["']/gu)) {
+      if (match[1] !== "@tsonic/dotnet/Xunit.js") {
+        violations.push(`${path}: test imports non-Xunit target API ${match[1]}`);
+      }
+    }
+  }
+  assert.deepEqual(violations, []);
+});
+
+test("portable external-tool orchestration uses the Node capability", () => {
+  const resources = join(repoRoot, "packages/engine/src/resources");
+  const externalProcess = readFileSync(join(resources, "external-process.ts"), "utf8");
+  assert.match(externalProcess, /from\s+["']node:child_process["']/u);
+  assert.match(externalProcess, /\bspawnSync\s*\(/u);
+  for (const fileName of ["sass-provider.ts", "javascript-provider.ts"]) {
+    const text = readFileSync(join(resources, fileName), "utf8");
+    assert.match(text, /runExternalProcess\s*\(/u, fileName);
+    assert.doesNotMatch(text, /@tsonic\/dotnet\/|\bProcess(?:StartInfo)?\b/u, fileName);
+  }
+});
+
+test("regular expression helpers use only the shared JavaScript contract", () => {
+  const source = readFileSync(
+    join(repoRoot, "packages/engine/src/utils/regular-expressions.ts"),
+    "utf8",
+  );
+  assert.match(source, /new RegExp\(/u);
+  assert.match(source, /\.matchAll\(/u);
+  assert.doesNotMatch(source, /@tsonic\/dotnet\/|@tsonic\/rust\//u);
+});
+
 test("locked restores exclude SDK-local package substitutes", () => {
   const buildProperties = readFileSync(join(repoRoot, "Directory.Build.props"), "utf8");
   assert.match(

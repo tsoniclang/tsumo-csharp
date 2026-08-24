@@ -1,4 +1,4 @@
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { TextBuilder } from "../utils/text-builder.js";
 import { compareText, replaceText } from "../utils/strings.js";
 
 export class SearchDocument {
@@ -37,21 +37,21 @@ export const renderSearchIndexJson = (documents: SearchDocument[]): string => {
   for (let index = 0; index < documents.length; index++) ordered.push(documents[index]!);
   ordered.sort((left: SearchDocument, right: SearchDocument) => compareSearchDocuments(left, right));
 
-  const output = new StringBuilder();
-  output.Append("[");
+  const output = new TextBuilder();
+  output.append("[");
   for (let index = 0; index < ordered.length; index++) {
     const document = ordered[index]!;
-    if (index > 0) output.Append(",");
-    output.Append("{\"title\":\"");
-    output.Append(escapeJsonString(document.title));
-    output.Append("\",\"url\":\"");
-    output.Append(escapeJsonString(document.url));
-    output.Append("\",\"mount\":\"");
-    output.Append(escapeJsonString(document.mount));
-    output.Append("\",\"text\":\"");
-    output.Append(escapeJsonString(document.text));
-    output.Append("\"}");
+    if (index > 0) output.append(",");
+    output.append("{\"title\":\"");
+    output.append(escapeJsonString(document.title));
+    output.append("\",\"url\":\"");
+    output.append(escapeJsonString(document.url));
+    output.append("\",\"mount\":\"");
+    output.append(escapeJsonString(document.mount));
+    output.append("\",\"text\":\"");
+    output.append(escapeJsonString(document.text));
+    output.append("\"}");
   }
-  output.Append("]");
-  return output.ToString();
+  output.append("]");
+  return output.toString();
 };

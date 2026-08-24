@@ -1,10 +1,11 @@
-import { File, Path } from "@tsonic/dotnet/System.IO.js";
-import { JsonDocument, JsonElement, JsonValueKind } from "@tsonic/dotnet/System.Text.Json.js";
-import type { char, int32 } from "@tsonic/core/types.js";
+import { isAbsolute, join, relative } from "node:path";
+import type { int32 } from "@tsonic/core/types.js";
 import { DocsMountConfig, NavItem } from "./models.js";
 import { createTsumoError } from "../diagnostics.js";
+import { fileExists, readTextFile } from "../fs.js";
 import { splitUrlSuffix } from "./url.js";
 import { replaceLineEndings, substringCount, substringFrom, trimEndChar, trimStartChar } from "../utils/strings.js";
+import { JsonArray, JsonObject, JsonString, JsonValue, parseJson } from "../utils/json.js";
 
 const normalizeSlashes = (path: string): string => path.replaceAll("\\", "/");
 
@@ -232,85 +233,50 @@ const parseNavJson = (
   jsonText: string,
   routesByRelPathLower: Map<string, string>,
 ): NavItem[] => {
-  const doc = JsonDocument.Parse(jsonText);
-  try {
-    const root = doc.RootElement;
-
-    let hasItems = false;
-    let itemsEl: JsonElement = root;
-    if (root.ValueKind === JsonValueKind.Array) {
-      hasItems = true;
-      itemsEl = root;
-    } else if (root.ValueKind === JsonValueKind.Object) {
-      const props = root.EnumerateObject().GetEnumerator();
-      while (props.MoveNext()) {
-        const p = props.Current;
-        if (p.Name.toLowerCase() === "items") {
-          hasItems = true;
-          itemsEl = p.Value;
-          break;
-        }
-      }
-    }
-
-    if (!hasItems) {
-      const empty: NavItem[] = [];
-      return empty;
-    }
-
-    return parseNavJsonItems(mount, navDirKey, routesByRelPathLower, itemsEl);
-  } finally {
-    doc.Dispose();
+  const root = parseJson(jsonText);
+  if (root instanceof JsonArray) {
+    return parseNavJsonItems(mount, navDirKey, routesByRelPathLower, root);
   }
+  if (root instanceof JsonObject) {
+    const items = root.getCaseInsensitive("items");
+    if (items !== undefined) return parseNavJsonItems(mount, navDirKey, routesByRelPathLower, items);
+  }
+  const empty: NavItem[] = [];
+  return empty;
 };
 
 function parseNavJsonItems(
   mount: DocsMountConfig,
   navDirKey: string,
   routesByRelPathLower: Map<string, string>,
-  el: JsonElement,
+  value: JsonValue,
 ): NavItem[] {
-  if (el.ValueKind !== JsonValueKind.Array) {
+  if (!(value instanceof JsonArray)) {
     const empty: NavItem[] = [];
     return empty;
   }
 
   const items: NavItem[] = [];
-  const it = el.EnumerateArray().GetEnumerator();
   let order: int32 = 1;
-  while (it.MoveNext()) {
-    const cur = it.Current;
-    if (cur.ValueKind !== JsonValueKind.Object) continue;
+  for (let itemIndex = 0; itemIndex < value.items.length; itemIndex++) {
+    const current = value.items[itemIndex]!;
+    if (!(current instanceof JsonObject)) continue;
 
     let title: string | undefined = undefined;
     let url: string | undefined = undefined;
     let path: string | undefined = undefined;
-    let hasChildren = false;
-    let childrenEl: JsonElement = cur;
-
-    const props = cur.EnumerateObject().GetEnumerator();
-    while (props.MoveNext()) {
-      const p = props.Current;
-      const k = p.Name.toLowerCase();
-      const v = p.Value;
-      if (k === "title" && v.ValueKind === JsonValueKind.String) {
-        const value = v.GetString();
-        if (value !== null) title = value;
-      } else if (k === "url" && v.ValueKind === JsonValueKind.String) {
-        const value = v.GetString();
-        if (value !== null) url = value;
-      } else if (k === "path" && v.ValueKind === JsonValueKind.String) {
-        const value = v.GetString();
-        if (value !== null) path = value;
-      }
-      else if (k === "children") {
-        hasChildren = true;
-        childrenEl = v;
-      }
-    }
+    const titleValue = current.getCaseInsensitive("title");
+    const urlValue = current.getCaseInsensitive("url");
+    const pathValue = current.getCaseInsensitive("path");
+    const childrenValue = current.getCaseInsensitive("children");
+    if (titleValue instanceof JsonString) title = titleValue.value;
+    if (urlValue instanceof JsonString) url = urlValue.value;
+    if (pathValue instanceof JsonString) path = pathValue.value;
 
     const emptyChildren: NavItem[] = [];
-    const children = hasChildren ? parseNavJsonItems(mount, navDirKey, routesByRelPathLower, childrenEl) : emptyChildren;
+    const children = childrenValue !== undefined
+      ? parseNavJsonItems(mount, navDirKey, routesByRelPathLower, childrenValue)
+      : emptyChildren;
 
     let finalUrl: string | undefined = undefined;
     if (url !== undefined) {
@@ -338,13 +304,13 @@ const joinUrlPath = (parts: string[]): string => {
 export const loadMountNav = (mount: DocsMountConfig, routesByRelPathLower: Map<string, string>): NavItem[] => {
   const navPath = mount.navPath;
   const navRaw = navPath !== undefined && navPath.trim() !== "" ? navPath.trim() : "README.md";
-  const navFile = Path.IsPathRooted(navRaw) ? navRaw : Path.Combine(mount.sourceDir, navRaw);
-  if (!File.Exists(navFile)) {
+  const navFile = isAbsolute(navRaw) ? navRaw : join(mount.sourceDir, navRaw);
+  if (!fileExists(navFile)) {
     const empty: NavItem[] = [];
     return empty;
   }
 
-  const rel = normalizeSlashes(Path.GetRelativePath(mount.sourceDir, navFile));
+  const rel = normalizeSlashes(relative(mount.sourceDir, navFile));
   if (rel === "" || rel.startsWith("..")) {
     throw createTsumoError("TSUMO_DOCS_NAV_OUTSIDE_MOUNT", `Mount nav must be inside sourceDir: ${navFile}`, navFile);
   }
@@ -354,7 +320,7 @@ export const loadMountNav = (mount: DocsMountConfig, routesByRelPathLower: Map<s
   for (let i = 0; i < parts.length - 1; i++) dirParts.push(parts[i]!);
   const navDirKey = joinUrlPath(dirParts);
 
-  const text = File.ReadAllText(navFile);
+  const text = readTextFile(navFile);
 
   if (navFile.toLowerCase().endsWith(".json")) {
     return parseNavJson(mount, navDirKey, text, routesByRelPathLower);

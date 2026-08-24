@@ -1,10 +1,9 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { attribute } from "@tsonic/core/lang.js";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
-import { Exception } from "@tsonic/dotnet/System.js";
 
 import {
   createStringResource,
@@ -19,7 +18,7 @@ import {
   ResourceManager,
   TsumoError,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 
 const captureResourceDiagnostic = (operation: () => void): string => {
   try {
@@ -28,7 +27,7 @@ const captureResourceDiagnostic = (operation: () => void): string => {
     if (error instanceof TsumoError) return error.diagnostic.code;
     throw error;
   }
-  throw new Exception("Expected a resource diagnostic");
+  throw new Error("Expected a resource diagnostic");
 };
 
 export class ResourcePipelineTests {
@@ -97,19 +96,19 @@ export class ResourcePipelineTests {
 
   file_resources_publish_raw_bytes_and_decode_only_for_text_operations(): void {
     const root = createTestDirectory("resource-bytes");
-    const siteDir = Path.Combine(root, "site");
-    const outputDir = Path.Combine(root, "output");
+    const siteDir = join(root, "site");
+    const outputDir = join(root, "output");
     try {
-      const assetsDir = Path.Combine(siteDir, "assets");
-      Directory.CreateDirectory(assetsDir);
+      const assetsDir = join(siteDir, "assets");
+      createDirectory(assetsDir);
       const sourceBytes = Buffer.from([0x61, 0xa0, 0x62]);
-      writeFileSync(Path.Combine(assetsDir, "legacy.js"), sourceBytes);
+      writeFileSync(join(assetsDir, "legacy.js"), sourceBytes);
       const manager = new ResourceManager(siteDir, undefined, outputDir);
       const resource = manager.get("legacy.js");
       Assert.True(resource !== undefined && resource.text === undefined);
-      if (resource === undefined) throw new Exception("Expected legacy.js resource");
+      if (resource === undefined) throw new Error("Expected legacy.js resource");
       manager.ensurePublished(resource);
-      const published = readFileSync(Path.Combine(outputDir, "legacy.js"));
+      const published = readFileSync(join(outputDir, "legacy.js"));
       Assert.Equal(3, published.length);
       Assert.Equal(0xa0, published.readUInt8(1));
       Assert.Equal(
@@ -154,17 +153,17 @@ export class ResourcePipelineTests {
 
   resource_lookup_is_sorted_and_site_assets_override_theme_assets(): void {
     const root = createTestDirectory("resources");
-    const siteDir = Path.Combine(root, "site");
-    const themeDir = Path.Combine(root, "theme");
-    const outputDir = Path.Combine(root, "output");
+    const siteDir = join(root, "site");
+    const themeDir = join(root, "theme");
+    const outputDir = join(root, "output");
     try {
-      Directory.CreateDirectory(Path.Combine(siteDir, "assets"));
-      Directory.CreateDirectory(Path.Combine(themeDir, "assets"));
-      File.WriteAllText(Path.Combine(siteDir, "assets", "z.txt"), "site-z");
-      File.WriteAllText(Path.Combine(siteDir, "assets", "a.txt"), "site-a");
-      File.WriteAllText(Path.Combine(siteDir, "assets", "main.ts"), "export const value = 1;");
-      File.WriteAllText(Path.Combine(themeDir, "assets", "a.txt"), "theme-a");
-      File.WriteAllText(Path.Combine(themeDir, "assets", "m.txt"), "theme-m");
+      createDirectory(join(siteDir, "assets"));
+      createDirectory(join(themeDir, "assets"));
+      writeTextFile(join(siteDir, "assets", "z.txt"), "site-z");
+      writeTextFile(join(siteDir, "assets", "a.txt"), "site-a");
+      writeTextFile(join(siteDir, "assets", "main.ts"), "export const value = 1;");
+      writeTextFile(join(themeDir, "assets", "a.txt"), "theme-a");
+      writeTextFile(join(themeDir, "assets", "m.txt"), "theme-m");
 
       const manager = new ResourceManager(siteDir, themeDir, outputDir);
       const matched = manager.match("*.txt");

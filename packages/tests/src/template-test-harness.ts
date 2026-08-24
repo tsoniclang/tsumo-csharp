@@ -1,10 +1,8 @@
-import { Exception } from "@tsonic/dotnet/System.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
 import type { int32 } from "@tsonic/core/types.js";
 
 import {
   DictValue, HtmlString, I18nStore, PageContext, parseTemplate, RenderScope, RenderState, ResourceManager,
-  SiteConfig, SiteContext, Template, TemplateEnvironment, TemplateNode, TemplateValue, TsumoError,
+  SiteConfig, SiteContext, Template, TemplateEnvironment, TemplateNode, TemplateValue, TextBuilder, TsumoError,
 } from "@tsumo/engine/testing.js";
 
 export class TestTemplateEnvironment extends TemplateEnvironment {
@@ -64,10 +62,10 @@ export class TestTemplateEnvironment extends TemplateEnvironment {
     overrides: Map<string, TemplateNode[]>,
     state?: RenderState,
   ): string {
-    const output = new StringBuilder();
+    const output = new TextBuilder();
     const scope = new RenderScope(context, context, site, this, undefined, state, template.sourcePath);
     template.renderInto(output, scope, this, overrides);
-    return output.ToString();
+    return output.toString();
   }
 
   renderTextTemplate(
@@ -77,10 +75,10 @@ export class TestTemplateEnvironment extends TemplateEnvironment {
     overrides: Map<string, TemplateNode[]>,
     state?: RenderState,
   ): string {
-    const output = new StringBuilder();
+    const output = new TextBuilder();
     const scope = new RenderScope(context, context, site, this, undefined, state, template.sourcePath);
     template.renderTextInto(output, scope, this, overrides);
-    return output.ToString();
+    return output.toString();
   }
 
   renderTemplateDefinition(
@@ -106,9 +104,9 @@ export const renderWithRoot = (source: string, root: TemplateValue): string => {
   const environment = new TestTemplateEnvironment();
   const site = createSite();
   const scope = new RenderScope(root, root, site, environment, undefined);
-  const output = new StringBuilder();
+  const output = new TextBuilder();
   template.renderInto(output, scope, environment, new Map());
-  return output.ToString();
+  return output.toString();
 };
 
 export const render = (source: string): string =>
@@ -134,7 +132,7 @@ export const captureDiagnosticCode = (operation: () => void): string => {
     if (error instanceof TsumoError) return error.diagnostic.code;
     throw error;
   }
-  throw new Exception("Expected a TsumoError diagnostic");
+  throw new Error("Expected a TsumoError diagnostic");
 };
 
 export const captureDiagnostic = (operation: () => void): TsumoError => {
@@ -144,5 +142,5 @@ export const captureDiagnostic = (operation: () => void): TsumoError => {
     if (error instanceof TsumoError) return error;
     throw error;
   }
-  throw new Exception("Expected a TsumoError diagnostic");
+  throw new Error("Expected a TsumoError diagnostic");
 };

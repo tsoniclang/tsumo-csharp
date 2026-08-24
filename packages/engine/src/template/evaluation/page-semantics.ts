@@ -1,4 +1,4 @@
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import type { int32 } from "@tsonic/core/types.js";
 import { PageContext, SiteContext } from "../../models.js";
 import { ParamKind } from "../../params.js";
@@ -14,17 +14,17 @@ export const toTitleCase = (text: string): string => {
   const trimmed = text.trim();
   if (trimmed === "") return "";
   const parts = trimmed.split(" ");
-  const sb = new StringBuilder();
+  const sb = new TextBuilder();
   for (let i = 0; i < parts.length; i++) {
     const word = parts[i]!;
     if (word.trim() === "") continue;
-    if (sb.Length > 0) sb.Append(" ");
+    if (sb.length > 0) sb.append(" ");
     const first = substringCount(word, 0, 1).toUpperCase();
     const rest = word.length > 1 ? substringFrom(word, 1).toLowerCase() : "";
-    sb.Append(first);
-    sb.Append(rest);
+    sb.append(first);
+    sb.append(rest);
   }
-  return sb.ToString();
+  return sb.toString();
 };
 
 export const toPages = (value: TemplateValue): PageContext[] => {

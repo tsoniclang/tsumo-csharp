@@ -341,6 +341,7 @@ const findClosingTag = (text: string, name: string, startPos: int32, isMarkdown:
 
 export const parseShortcodes = (text: string, sourcePath?: string): ShortcodeCall[] => {
   const results: ShortcodeCall[] = [];
+  if (!text.includes("{{<") && !text.includes("{{%")) return results;
   const sourceMap = new ShortcodeSourceMap(text);
   let pos: int32 = 0;
 

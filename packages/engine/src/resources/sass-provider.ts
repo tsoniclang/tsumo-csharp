@@ -1,7 +1,10 @@
 import { Buffer } from "node:buffer";
-import { Environment, Guid } from "@tsonic/dotnet/System.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { env } from "node:process";
 import { createTsumoError } from "../diagnostics.js";
+import { dirExists } from "../fs.js";
 import { Resource } from "./models.js";
 import { runExternalProcess } from "./external-process.js";
 import { splitResourceFileName, splitResourcePath } from "./paths.js";
@@ -13,11 +16,11 @@ export const compileSassResource = (
 ): Resource => {
   const sourceText = readResourceText(resource, "css.Sass");
 
-  const configuredExecutable = Environment.GetEnvironmentVariable("TSUMO_SASS");
+  const configuredExecutable = env["TSUMO_SASS"];
   const executable = configuredExecutable !== undefined && configuredExecutable.trim() !== ""
     ? configuredExecutable.trim()
     : "sass";
-  const configuredImplementation = Environment.GetEnvironmentVariable("TSUMO_SASS_IMPLEMENTATION");
+  const configuredImplementation = env["TSUMO_SASS_IMPLEMENTATION"];
   const implementation = configuredImplementation === undefined || configuredImplementation.trim() === ""
     ? "dart-sass"
     : configuredImplementation.trim().toLowerCase();
@@ -27,23 +30,19 @@ export const compileSassResource = (
       `Unsupported Sass implementation '${implementation}'; expected 'dart-sass' or 'libsass'`,
     );
   }
-  const workDirectory = Path.Combine(
-    Path.GetTempPath(),
-    `tsumo-sass-${Guid.NewGuid().ToString("n")}`,
-  );
-  Directory.CreateDirectory(workDirectory);
+  const workDirectory = mkdtempSync(join(tmpdir(), "tsumo-sass-"));
 
   try {
-    const inputPath = Path.Combine(workDirectory, "input.scss");
-    const outputPath = Path.Combine(workDirectory, "output.css");
-    File.WriteAllText(inputPath, sourceText);
+    const inputPath = join(workDirectory, "input.scss");
+    const outputPath = join(workDirectory, "output.css");
+    writeFileSync(inputPath, sourceText, "utf8");
 
     const argumentsList: string[] = implementation === "dart-sass"
       ? ["--no-source-map", "--style", "expanded"]
       : ["-t", "expanded"];
     for (let index = 0; index < loadPaths.length; index++) {
       const loadPath = loadPaths[index]!;
-      if (!Directory.Exists(loadPath)) continue;
+      if (!dirExists(loadPath)) continue;
       argumentsList.push(implementation === "dart-sass" ? "--load-path" : "-I");
       argumentsList.push(loadPath);
     }
@@ -58,11 +57,11 @@ export const compileSassResource = (
         stderr === "" ? `Sass compiler failed with exit code ${process.exitCode}` : stderr,
       );
     }
-    if (!File.Exists(outputPath)) {
+    if (!existsSync(outputPath)) {
       throw createTsumoError("TSUMO_SASS_OUTPUT_MISSING", "Sass compiler completed without producing CSS");
     }
 
-    const text = File.ReadAllText(outputPath);
+    const text = readFileSync(outputPath, "utf8");
     const outputPathRaw = resource.outputRelPath ?? "style.scss";
     const path = splitResourcePath(outputPathRaw);
     const file = splitResourceFileName(path.fileName);
@@ -77,6 +76,6 @@ export const compileSassResource = (
       "text/css",
     );
   } finally {
-    if (Directory.Exists(workDirectory)) Directory.Delete(workDirectory, true);
+    rmSync(workDirectory, { recursive: true, force: true });
   }
 };

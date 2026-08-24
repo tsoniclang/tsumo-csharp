@@ -1,6 +1,6 @@
 import { attribute } from "@tsonic/core/lang.js";
+import { join } from "node:path";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
 
 import {
   DateValue,
@@ -11,7 +11,7 @@ import {
   parseTemplate,
   ResourceManager,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 import {
   captureDiagnosticCode,
   createPage,
@@ -139,20 +139,20 @@ export class ThemeCompatibilityTests {
 
   site_data_layers_are_structured_deterministic_and_conflict_checked(): void {
     const root = createTestDirectory("theme-data-layers");
-    const siteDirectory = Path.Combine(root, "site");
-    const themeDirectory = Path.Combine(root, "theme");
-    const mountDirectory = Path.Combine(root, "module-data");
+    const siteDirectory = join(root, "site");
+    const themeDirectory = join(root, "theme");
+    const mountDirectory = join(root, "module-data");
     try {
-      Directory.CreateDirectory(Path.Combine(siteDirectory, "data"));
-      Directory.CreateDirectory(Path.Combine(themeDirectory, "data", "nested"));
-      Directory.CreateDirectory(mountDirectory);
-      File.WriteAllText(Path.Combine(themeDirectory, "data", "theme.toml"), "value = \"theme\"\n");
-      File.WriteAllText(Path.Combine(themeDirectory, "data", "shared.toml"), "value = \"theme\"\n");
-      File.WriteAllText(Path.Combine(themeDirectory, "data", "nested", "entry.json"), "{\"value\":\"nested\"}");
-      File.WriteAllText(Path.Combine(mountDirectory, "module.json"), "{\"value\":\"module\"}");
-      File.WriteAllText(Path.Combine(mountDirectory, "shared.json"), "{\"value\":\"module\"}");
-      File.WriteAllText(Path.Combine(siteDirectory, "data", "site.yaml"), "value: site\n");
-      File.WriteAllText(Path.Combine(siteDirectory, "data", "shared.yaml"), "value: site\n");
+      createDirectory(join(siteDirectory, "data"));
+      createDirectory(join(themeDirectory, "data", "nested"));
+      createDirectory(mountDirectory);
+      writeTextFile(join(themeDirectory, "data", "theme.toml"), "value = \"theme\"\n");
+      writeTextFile(join(themeDirectory, "data", "shared.toml"), "value = \"theme\"\n");
+      writeTextFile(join(themeDirectory, "data", "nested", "entry.json"), "{\"value\":\"nested\"}");
+      writeTextFile(join(mountDirectory, "module.json"), "{\"value\":\"module\"}");
+      writeTextFile(join(mountDirectory, "shared.json"), "{\"value\":\"module\"}");
+      writeTextFile(join(siteDirectory, "data", "site.yaml"), "value: site\n");
+      writeTextFile(join(siteDirectory, "data", "shared.yaml"), "value: site\n");
 
       const data = loadSiteData(
         siteDirectory,
@@ -172,7 +172,7 @@ export class ThemeCompatibilityTests {
         environment.renderTemplate(template, new PageValue(page), site, new Map()),
       );
 
-      File.WriteAllText(Path.Combine(siteDirectory, "data", "shared.toml"), "value = \"duplicate\"\n");
+      writeTextFile(join(siteDirectory, "data", "shared.toml"), "value = \"duplicate\"\n");
       Assert.Equal(
         "TSUMO_DATA_IDENTITY_CONFLICT",
         captureDiagnosticCode(() => {
@@ -186,12 +186,12 @@ export class ThemeCompatibilityTests {
 
   embedded_page_image_partial_selects_published_page_resources(): void {
     const root = createTestDirectory("embedded-page-images");
-    const siteDirectory = Path.Combine(root, "site");
-    const bundleDirectory = Path.Combine(siteDirectory, "content", "home");
-    const outputDirectory = Path.Combine(root, "output");
+    const siteDirectory = join(root, "site");
+    const bundleDirectory = join(siteDirectory, "content", "home");
+    const outputDirectory = join(root, "output");
     try {
-      Directory.CreateDirectory(bundleDirectory);
-      File.WriteAllText(Path.Combine(bundleDirectory, "cover.svg"), "<svg></svg>");
+      createDirectory(bundleDirectory);
+      writeTextFile(join(bundleDirectory, "cover.svg"), "<svg></svg>");
       const source = getEmbeddedTemplateSource("_partials/_funcs/get-page-images.html");
       if (source === undefined) {
         Assert.True(false);

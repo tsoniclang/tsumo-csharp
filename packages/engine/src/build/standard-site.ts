@@ -1,4 +1,4 @@
-import { Path } from "@tsonic/dotnet/System.IO.js";
+import { join } from "node:path";
 import type { int32 } from "@tsonic/core/types.js";
 import { loadSiteConfig } from "../config.js";
 import { BuildEnvironment } from "../env.js";
@@ -29,11 +29,11 @@ export const buildStandardSite = (request: BuildRequest, siteDir: string, outDir
   const environment = new BuildEnvironment(siteDir, themeDir, outDir, config.moduleMounts, request.buildTime);
   const outputPlan = new SiteOutputPlan();
   if (themeDir !== undefined) {
-    outputPlan.addDirectory(Path.Combine(themeDir, "static"), "", "theme static files", "theme-static");
+    outputPlan.addDirectory(join(themeDir, "static"), "", "theme static files", "theme-static");
   }
-  outputPlan.addDirectory(Path.Combine(siteDir, "static"), "", "site static files", "site-static");
+  outputPlan.addDirectory(join(siteDir, "static"), "", "site static files", "site-static");
 
-  const inventory = discoverContent(Path.Combine(siteDir, config.contentDir), request.buildDrafts);
+  const inventory = discoverContent(join(siteDir, config.contentDir), request.buildDrafts);
   const pageGraph = createStandardPageGraph(config, inventory);
   const taxonomies = createStandardTaxonomies(pageGraph);
   renderStandardPageContent(pageGraph, environment);

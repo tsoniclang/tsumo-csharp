@@ -1,7 +1,5 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { Uri } from "@tsonic/dotnet/System.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
 import type { int32 } from "@tsonic/core/types.js";
 import {
   findRegularExpressionMatches,
@@ -23,6 +21,7 @@ import {
 } from "../../utils/strings.js";
 import { ensureTrailingSlash, humanizeSlug, slugify } from "../../utils/text.js";
 import { parseInt32 } from "../../utils/int32.js";
+import { encodeUrlComponent } from "../../utils/url-components.js";
 import { renderMarkdown } from "../../markdown.js";
 import {
   AnyArrayValue, BoolValue, DateValue, DictValue, DocsMountArrayValue, HtmlValue,
@@ -31,7 +30,8 @@ import {
 } from "../values.js";
 import { HtmlString } from "../../utils/html.js";
 import { createTsumoError } from "../../diagnostics.js";
-import { convertGoDateLayoutToDotNet, parseDateTime } from "../evaluation/scalar-semantics.js";
+import { formatDateTime } from "../evaluation/scalar-semantics.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import { parseUrl, toJson, trimEndCharacter, trimSlashes, trimStartCharacter } from "../evaluation/serialization.js";
 import { isDefaultSet, isTemplateMap, isTemplateSlice, isTruthy, nil, toNumber, toPlainString } from "../runtime-helpers.js";
 import { TemplateFunctionContext } from "./function-context.js";
@@ -401,12 +401,12 @@ export const callScalarFunction = (
   if (name === "urlquery" && args.length >= 1) {
     const v = args[0]!;
     const s = toPlainString(v);
-    return new StringValue(Uri.EscapeDataString(s));
+    return new StringValue(encodeUrlComponent(s));
   }
 
   if (name === "querify" && args.length >= 2) {
     return new StringValue(
-      Uri.EscapeDataString(toPlainString(args[0]!)) + "=" + Uri.EscapeDataString(toPlainString(args[1]!)),
+      encodeUrlComponent(toPlainString(args[0]!)) + "=" + encodeUrlComponent(toPlainString(args[1]!)),
     );
   }
 
@@ -460,16 +460,13 @@ export const callScalarFunction = (
   if (name === "dateformat" && args.length >= 2) {
     const layout = toPlainString(args[0]!);
     const s = toPlainString(args[1]!);
-    const parsed = parseDateTime(s);
-    if (parsed === undefined) return new StringValue("");
-    const fmt = convertGoDateLayoutToDotNet(layout);
-    return new StringValue(parsed.ToString(fmt));
+    return new StringValue(formatDateTime(s, layout) ?? "");
   }
 
   if (name === "print" && args.length >= 1) {
-    const sb = new StringBuilder();
-    for (let i = 0; i < args.length; i++) sb.Append(toPlainString(args[i]!));
-    return new StringValue(sb.ToString());
+    const sb = new TextBuilder();
+    for (let i = 0; i < args.length; i++) sb.append(toPlainString(args[i]!));
+    return new StringValue(sb.toString());
   }
 
   if (name === "printf" && args.length >= 1) {
@@ -477,7 +474,7 @@ export const callScalarFunction = (
     const values: TemplateValue[] = [];
     for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex++) values.push(args[argumentIndex]!);
 
-    const sb = new StringBuilder();
+    const sb = new TextBuilder();
     let pos = 0;
     let valueIndex = 0;
     while (pos < fmt.length) {
@@ -485,7 +482,7 @@ export const callScalarFunction = (
       if (ch === "%" && pos + 1 < fmt.length) {
         const next = substringCount(fmt, pos + 1, 1);
         if (next === "%") {
-          sb.Append("%");
+          sb.append("%");
           pos += 2;
           continue;
         }
@@ -496,17 +493,17 @@ export const callScalarFunction = (
           width = 3;
         }
         if (verb === "s" || verb === "d" || verb === "t" || verb === "v" || verb === "q" || verb === "T" || verb === "#v") {
-          if (valueIndex < values.length) sb.Append(formatTemplateValue(values[valueIndex]!, verb));
+          if (valueIndex < values.length) sb.append(formatTemplateValue(values[valueIndex]!, verb));
           valueIndex++;
           pos += width;
           continue;
         }
       }
-      sb.Append(ch);
+      sb.append(ch);
       pos++;
     }
 
-    return new StringValue(sb.ToString());
+    return new StringValue(sb.toString());
   }
 
   if (args.length >= 2) {

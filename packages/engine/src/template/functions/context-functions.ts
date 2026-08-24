@@ -1,4 +1,4 @@
-import { Environment } from "@tsonic/dotnet/System.js";
+import { cwd } from "node:process";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { HtmlString } from "../../utils/html.js";
@@ -91,7 +91,7 @@ export const callContextFunction = (
 
   if (name === "hugo.ismultilingual") return new BoolValue(false);
   if (name === "hugo.ismultihost") return new BoolValue(false);
-  if (name === "hugo.workingdir") return new StringValue(Environment.CurrentDirectory);
+  if (name === "hugo.workingdir") return new StringValue(cwd());
   if (name === "hugo.version") return new VersionStringValue(hugoCompatibilityVersion);
   if (name === "hugo.generator") {
     return new HtmlValue(new HtmlString(`<meta name="generator" content="Hugo ${hugoCompatibilityVersion}">`));

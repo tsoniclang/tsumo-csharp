@@ -390,22 +390,22 @@ export const resolvePath = (value: TemplateValue, segments: string[], scope: Ren
       const uri = cur.value;
       const k = seg.toLowerCase();
       if (k === "isabs") {
-        cur = new BoolValue(uri.IsAbsoluteUri);
+        cur = new BoolValue(uri.absolute);
         continue;
       }
       if (k === "host") {
         // Hugo returns empty string for relative URIs, not an exception
-        cur = new StringValue(uri.IsAbsoluteUri ? uri.Host : "");
+        cur = new StringValue(uri.absolute ? uri.host : "");
         continue;
       }
       if (k === "scheme") {
         // Hugo returns empty string for relative URIs
-        cur = new StringValue(uri.IsAbsoluteUri ? uri.Scheme : "");
+        cur = new StringValue(uri.absolute ? uri.scheme : "");
         continue;
       }
       if (k === "string") {
         // Return the original string representation
-        cur = new StringValue(uri.OriginalString);
+        cur = new StringValue(uri.originalString);
         continue;
       }
       if (k === "path" || k === "rawquery" || k === "fragment" || k === "query") {

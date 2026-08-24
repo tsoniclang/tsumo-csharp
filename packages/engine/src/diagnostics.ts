@@ -1,5 +1,3 @@
-import { Exception } from "@tsonic/dotnet/System.js";
-
 export type TsumoDiagnosticCategory = "error" | "warning";
 
 export class TsumoDiagnostic {
@@ -36,11 +34,12 @@ export class TsumoDiagnostic {
   }
 }
 
-export class TsumoError extends Exception {
+export class TsumoError extends Error {
   diagnostic: TsumoDiagnostic;
 
   constructor(diagnostic: TsumoDiagnostic) {
     super(diagnostic.format());
+    this.name = "TsumoError";
     this.diagnostic = diagnostic;
   }
 }

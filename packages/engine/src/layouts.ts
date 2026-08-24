@@ -1,5 +1,5 @@
 import type { char, int32 } from "@tsonic/core/types.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { TextBuilder } from "./utils/text-builder.js";
 import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { dirExists, fileExists, readTextFile } from "./fs.js";
 import { PageValue, parseTemplate, Template, TemplateEnvironment, TemplateNode } from "./template/index.js";
@@ -82,10 +82,10 @@ export class LayoutEnvironment extends TemplateEnvironment {
     overrides: Map<string, TemplateNode[]>,
     state?: RenderState,
   ): string {
-    const output = new StringBuilder();
+    const output = new TextBuilder();
     const scope = new RenderScope(context, context, site, this, undefined, state, template.sourcePath);
     template.renderInto(output, scope, this, overrides);
-    return output.ToString();
+    return output.toString();
   }
 
   renderTextTemplate(
@@ -95,10 +95,10 @@ export class LayoutEnvironment extends TemplateEnvironment {
     overrides: Map<string, TemplateNode[]>,
     state?: RenderState,
   ): string {
-    const output = new StringBuilder();
+    const output = new TextBuilder();
     const scope = new RenderScope(context, context, site, this, undefined, state, template.sourcePath);
     template.renderTextInto(output, scope, this, overrides);
-    return output.ToString();
+    return output.toString();
   }
 
   renderTemplateDefinition(

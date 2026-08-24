@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
-import { readFileSync, writeFileSync } from "node:fs";
-import { Guid } from "@tsonic/dotnet/System.js";
-import { Directory, Path } from "@tsonic/dotnet/System.IO.js";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { extname, join } from "node:path";
 import type { int32 } from "@tsonic/core/types.js";
 import { CodecManager, MagicImageProcessor, ProcessImageSettings } from "@tsonic/dotnet/PhotoSauce.MagicScaler.js";
 import type { CodecCollection } from "@tsonic/dotnet/PhotoSauce.MagicScaler.js";
@@ -103,20 +103,16 @@ export const resizeImageResource = (resource: Resource, specification: string): 
   }
 
   const sourceName = resource.outputRelPath ?? resource.sourcePath ?? "";
-  const sourceExtension = (Path.GetExtension(sourceName) ?? "").toLowerCase();
+  const sourceExtension = extname(sourceName).toLowerCase();
   if (sourceExtension === "") {
     throw createTsumoError("TSUMO_IMAGE_FORMAT_UNKNOWN", "Image resizing requires a source file format");
   }
   const outputExtension = request.format === undefined ? sourceExtension : `.${request.format}`;
-  const workDirectory = Path.Combine(
-    Path.GetTempPath(),
-    `tsumo-image-${Guid.NewGuid().ToString("n")}`,
-  );
-  Directory.CreateDirectory(workDirectory);
+  const workDirectory = mkdtempSync(join(tmpdir(), "tsumo-image-"));
 
   try {
-    const inputPath = Path.Combine(workDirectory, "input" + sourceExtension);
-    const outputPath = Path.Combine(workDirectory, "output" + outputExtension);
+    const inputPath = join(workDirectory, "input" + sourceExtension);
+    const outputPath = join(workDirectory, "output" + outputExtension);
     writeFileSync(inputPath, resource.bytes);
     ensureImageCodecsRegistered();
     const settings = new ProcessImageSettings();
@@ -151,6 +147,6 @@ export const resizeImageResource = (resource: Resource, specification: string): 
       outputHeight,
     );
   } finally {
-    if (Directory.Exists(workDirectory)) Directory.Delete(workDirectory, true);
+    rmSync(workDirectory, { recursive: true, force: true });
   }
 };
