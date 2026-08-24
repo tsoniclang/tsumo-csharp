@@ -45,6 +45,7 @@ export { parseTemplate } from "./template/parser/parse-template.js";
 export { RenderScope, RenderState } from "./template/scope.js";
 export { Template } from "./template/template.js";
 export { HtmlString } from "./utils/html.js";
+export { TextBuilder } from "./utils/text-builder.js";
 export { contentTypeForPath } from "./utils/mime.js";
 export { listDirectoriesTopDirectory, listFilesRecursive, listFilesTopDirectory } from "./fs.js";
 export { createWatchSnapshot, watchSnapshotsEqual } from "./watch-snapshot.js";

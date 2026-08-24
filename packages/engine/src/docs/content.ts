@@ -39,7 +39,7 @@ export const loadDocsContent = (routes: DocsMarkdownRoute[], buildDrafts: boolea
   for (let index = 0; index < routes.length; index++) {
     const route = routes[index]!;
     const parsed = parseContent(readTextFile(route.sourcePath), route.sourcePath);
-    const content = new DocsContentRoute(route, parsed, statSync(route.sourcePath).mtime);
+    const content = new DocsContentRoute(route, parsed, new Date(statSync(route.sourcePath).mtimeMs));
     if (route.isIndex) {
       indexByDirectory.set(route.dirKey, content);
       permalinkByRelativePath.set(route.relPath.toLowerCase(), route.relPermalink);

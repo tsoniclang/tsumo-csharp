@@ -1,5 +1,5 @@
 import type { int32 } from "@tsonic/core/types.js";
-import { Process, ProcessStartInfo } from "@tsonic/dotnet/System.Diagnostics.js";
+import { spawnSync } from "node:child_process";
 import { createTsumoError } from "../diagnostics.js";
 
 export class ExternalProcessResult {
@@ -18,28 +18,15 @@ export const runExternalProcess = (
   toolName: string,
   startDiagnosticCode: string,
 ): ExternalProcessResult => {
-  const startInfo = new ProcessStartInfo();
-  startInfo.FileName = executable;
-  for (let index = 0; index < argumentsList.length; index++) {
-    startInfo.ArgumentList.Add(argumentsList[index]!);
-  }
-  startInfo.RedirectStandardError = true;
-  startInfo.UseShellExecute = false;
-  startInfo.CreateNoWindow = true;
-
-  let process: Process | undefined = undefined;
-  try {
-    process = Process.Start(startInfo);
-  } catch (error) {
+  const result = spawnSync(executable, argumentsList);
+  const standardError = result.stderr.toString("utf8").trim();
+  if (result.status === null) {
     throw createTsumoError(
       startDiagnosticCode,
-      `Failed to start ${toolName} '${executable}': ${error}`,
+      standardError === ""
+        ? `Failed to start ${toolName} '${executable}'`
+        : `Failed to start ${toolName} '${executable}': ${standardError}`,
     );
   }
-  if (process === undefined) {
-    throw createTsumoError(startDiagnosticCode, `Failed to start ${toolName} '${executable}'`);
-  }
-  const standardError = process.StandardError.ReadToEnd().trim();
-  process.WaitForExit();
-  return new ExternalProcessResult(process.ExitCode, standardError);
+  return new ExternalProcessResult(result.status as int32, standardError);
 };

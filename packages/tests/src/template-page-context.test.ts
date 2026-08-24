@@ -1,7 +1,6 @@
 import { attribute } from "@tsonic/core/lang.js";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { join } from "node:path";
 
 import {
   DateValue,
@@ -12,8 +11,9 @@ import {
   parseTemplate,
   RenderScope,
   ResourceManager,
+  TextBuilder,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 import {
   createPage, createSite, renderWithRoot, TestTemplateEnvironment,
 } from "./template-test-harness.js";
@@ -60,15 +60,15 @@ export class TemplatePageContextTests {
     environment.templates.set("_partials/templates/_funcs/child", parseTemplate("child={{ . }}", "_partials/templates/_funcs/child.html"));
     const parent = parseTemplate("{{ partial \"_funcs/child\" \"exact\" }}", "_partials/templates/parent.html");
     const parentScope = new RenderScope(new PageValue(root), new PageValue(root), site, environment, undefined, undefined, parent.sourcePath);
-    const output = new StringBuilder();
+    const output = new TextBuilder();
     parent.renderInto(output, parentScope, environment, new Map());
-    Assert.Equal("child=exact", output.ToString());
+    Assert.Equal("child=exact", output.toString());
 
     const pageTemplate = parseTemplate("{{ .Render \"summary\" }}");
-    const pageOutput = new StringBuilder();
+    const pageOutput = new TextBuilder();
     const pageScope = new RenderScope(new PageValue(newer), new PageValue(newer), site, environment, undefined);
     pageTemplate.renderInto(pageOutput, pageScope, environment, new Map());
-    Assert.Equal("<summary>Newer</summary>", pageOutput.ToString());
+    Assert.Equal("<summary>Newer</summary>", pageOutput.toString());
   }
 
   page_taxonomy_terms_follow_explicit_graph_relations(): void {
@@ -153,13 +153,13 @@ export class TemplatePageContextTests {
 
   page_resources_use_the_published_bundle_inventory(): void {
     const root = createTestDirectory("template-page-resources");
-    const siteDirectory = Path.Combine(root, "site");
-    const bundleDirectory = Path.Combine(siteDirectory, "content", "article");
-    const outputDirectory = Path.Combine(root, "output");
+    const siteDirectory = join(root, "site");
+    const bundleDirectory = join(siteDirectory, "content", "article");
+    const outputDirectory = join(root, "output");
     try {
-      Directory.CreateDirectory(bundleDirectory);
-      File.WriteAllText(Path.Combine(bundleDirectory, "cover.svg"), "<svg></svg>");
-      File.WriteAllText(Path.Combine(bundleDirectory, "notes.txt"), "notes");
+      createDirectory(bundleDirectory);
+      writeTextFile(join(bundleDirectory, "cover.svg"), "<svg></svg>");
+      writeTextFile(join(bundleDirectory, "notes.txt"), "notes");
 
       const manager = new ResourceManager(siteDirectory, undefined, outputDirectory);
       const environment = new TestTemplateEnvironment(manager);

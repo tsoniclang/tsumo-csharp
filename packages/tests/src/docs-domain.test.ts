@@ -1,6 +1,5 @@
 import { attribute } from "@tsonic/core/lang.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
-import { Exception } from "@tsonic/dotnet/System.js";
+import { join } from "node:path";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
 import {
   discoverDocsMountRoutes,
@@ -16,7 +15,7 @@ import {
   SearchDocument,
   TsumoError,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 
 const captureDocsDiagnostic = (operation: () => void): string => {
   try {
@@ -25,7 +24,7 @@ const captureDocsDiagnostic = (operation: () => void): string => {
     if (error instanceof TsumoError) return error.diagnostic.code;
     throw error;
   }
-  throw new Exception("Expected a docs diagnostic");
+  throw new Error("Expected a docs diagnostic");
 };
 
 const createMount = (sourceDir: string, prefix: string): DocsMountConfig =>
@@ -35,11 +34,11 @@ export class DocsDomainTests {
   route_discovery_is_sorted_and_rejects_output_collisions(): void {
     const root = createTestDirectory("docs-routes");
     try {
-      const source = Path.Combine(root, "source");
-      Directory.CreateDirectory(Path.Combine(source, "nested"));
-      File.WriteAllText(Path.Combine(source, "z.md"), "# Z");
-      File.WriteAllText(Path.Combine(source, "a.md"), "# A");
-      File.WriteAllText(Path.Combine(source, "nested", "asset.txt"), "asset");
+      const source = join(root, "source");
+      createDirectory(join(source, "nested"));
+      writeTextFile(join(source, "z.md"), "# Z");
+      writeTextFile(join(source, "a.md"), "# A");
+      writeTextFile(join(source, "nested", "asset.txt"), "asset");
 
       const routes = discoverDocsMountRoutes(createMount(source, "/docs/"));
       Assert.Equal(2, routes.markdown.length);
@@ -48,10 +47,10 @@ export class DocsDomainTests {
       Assert.Equal(1, routes.assets.length);
       Assert.True(routes.assets[0]!.outputRelPath === "docs/nested/asset.txt");
 
-      const conflicting = Path.Combine(root, "conflicting");
-      Directory.CreateDirectory(Path.Combine(conflicting, "guide"));
-      File.WriteAllText(Path.Combine(conflicting, "guide.md"), "# Guide");
-      File.WriteAllText(Path.Combine(conflicting, "guide", "index.md"), "# Other guide");
+      const conflicting = join(root, "conflicting");
+      createDirectory(join(conflicting, "guide"));
+      writeTextFile(join(conflicting, "guide.md"), "# Guide");
+      writeTextFile(join(conflicting, "guide", "index.md"), "# Other guide");
       Assert.Equal(
         "TSUMO_DOCS_ROUTE_CONFLICT",
         captureDocsDiagnostic(() => {
@@ -66,8 +65,8 @@ export class DocsDomainTests {
   content_inventory_excludes_draft_leaf_routes(): void {
     const root = createTestDirectory("docs-content");
     try {
-      File.WriteAllText(Path.Combine(root, "published.md"), "---\ntitle: Published\n---\nBody");
-      File.WriteAllText(Path.Combine(root, "draft.md"), "---\ntitle: Draft\ndraft: true\n---\nHidden");
+      writeTextFile(join(root, "published.md"), "---\ntitle: Published\n---\nBody");
+      writeTextFile(join(root, "draft.md"), "---\ntitle: Draft\ndraft: true\n---\nHidden");
       const routes = discoverDocsMountRoutes(createMount(root, "/docs/")).markdown;
 
       const production = loadDocsContent(routes, false);
@@ -86,9 +85,9 @@ export class DocsDomainTests {
   docs_config_has_one_closed_schema(): void {
     const root = createTestDirectory("docs-config");
     try {
-      Directory.CreateDirectory(Path.Combine(root, "content"));
-      const configPath = Path.Combine(root, "tsumo.docs.json");
-      File.WriteAllText(
+      createDirectory(join(root, "content"));
+      const configPath = join(root, "tsumo.docs.json");
+      writeTextFile(
         configPath,
         "{\"siteName\":\"Contract\",\"mounts\":[{\"name\":\"Main\",\"source\":\"./content\",\"prefix\":\"/docs/\"}]}",
       );
@@ -96,7 +95,7 @@ export class DocsDomainTests {
       Assert.True(loaded !== undefined && loaded.config.mounts.length === 1);
       Assert.True(loaded !== undefined && loaded.config.mounts[0]!.urlPrefix === "/docs/");
 
-      File.WriteAllText(
+      writeTextFile(
         configPath,
         "{\"mounts\":[{\"source\":\"./content\",\"prefix\":\"/docs/\",\"repo\":\"https://example.invalid\"}]}",
       );
@@ -107,7 +106,7 @@ export class DocsDomainTests {
         }),
       );
 
-      File.WriteAllText(
+      writeTextFile(
         configPath,
         "{\"search\":\"yes\",\"mounts\":[{\"source\":\"./content\",\"prefix\":\"/docs/\"}]}",
       );

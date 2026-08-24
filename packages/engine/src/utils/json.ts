@@ -1,5 +1,4 @@
 import type { int32 } from "@tsonic/core/types.js";
-import { Char } from "@tsonic/dotnet/System.js";
 import { createTsumoError, TsumoError } from "../diagnostics.js";
 import { IndexedSourceText } from "./indexed-source-text.js";
 import { compareText, indexOfText } from "./strings.js";
@@ -267,12 +266,12 @@ class JsonParser {
         throw this.syntaxError("A high-surrogate JSON escape must be followed by a low-surrogate escape", this.index - 4);
       }
       const codePoint = 0x10000 + (first - 0xd800) * 0x400 + second - 0xdc00;
-      return Char.ConvertFromUtf32(codePoint);
+      return String.fromCodePoint(codePoint);
     }
     if (first >= 0xdc00 && first <= 0xdfff) {
       throw this.syntaxError("A low-surrogate JSON escape requires a preceding high-surrogate escape", this.index - 4);
     }
-    return Char.ConvertFromUtf32(first);
+    return String.fromCodePoint(first);
   }
 
   parseUnicodeCodeUnit(): int32 {

@@ -1,5 +1,5 @@
 import { statSync } from "node:fs";
-import { Path } from "@tsonic/dotnet/System.IO.js";
+import { dirname, relative, resolve } from "node:path";
 import { createTsumoError } from "../diagnostics.js";
 import { parseContent } from "../frontmatter.js";
 import { listFilesRecursive, readTextFile } from "../fs.js";
@@ -22,7 +22,7 @@ const isBranchIndexFile = (name: string): boolean => name.toLowerCase() === "_in
 const isLeafBundleIndexFile = (name: string): boolean => name.toLowerCase() === "index.md";
 
 const createPageFile = (directory: string, fileName: string, filePath: string): PageFile =>
-  new PageFile(Path.GetFullPath(filePath), directory === "" ? "" : directory + "/", withoutMarkdownExtension(fileName));
+  new PageFile(resolve(filePath), directory === "" ? "" : directory + "/", withoutMarkdownExtension(fileName));
 
 const compareContentPages = (left: ContentPageSource, right: ContentPageSource): number => {
   const leftTime = left.dateUtc.getTime();
@@ -59,7 +59,7 @@ export const discoverContent = (
 
   for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
     const filePath = files[fileIndex]!;
-    const relativePath = normalizeSitePath(Path.GetRelativePath(contentDir, filePath));
+    const relativePath = normalizeSitePath(relative(contentDir, filePath));
     if (relativePath === "" || relativePath === ".." || relativePath.startsWith("../")) {
       throw createTsumoError(
         "TSUMO_CONTENT_SOURCE_PATH_INVALID",
@@ -99,7 +99,7 @@ export const discoverContent = (
           frontMatter.type,
           frontMatter.layout,
           frontMatter.Params,
-          Path.GetDirectoryName(filePath) ?? contentDir,
+          dirname(filePath),
           file,
         ),
       );

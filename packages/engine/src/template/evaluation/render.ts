@@ -1,4 +1,4 @@
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { compareText } from "../../utils/strings.js";
 import type { TemplateEnvironment } from "../environment.js";
@@ -124,7 +124,7 @@ const createControlScope = (
 
 export const renderTemplateNodes = (
   nodes: TemplateNode[],
-  output: StringBuilder,
+  output: TextBuilder,
   scope: RenderScope,
   environment: TemplateEnvironment,
   overrides: Map<string, TemplateNode[]>,
@@ -140,7 +140,7 @@ export const renderTemplateNodes = (
 
 export const renderTemplateNode = (
   node: TemplateNode,
-  output: StringBuilder,
+  output: TextBuilder,
   scope: RenderScope,
   environment: TemplateEnvironment,
   overrides: Map<string, TemplateNode[]>,
@@ -148,11 +148,11 @@ export const renderTemplateNode = (
   outputMode: TemplateOutputMode,
 ): TemplateControlFlow => {
   if (node instanceof TextNode) {
-    output.Append(node.text);
+    output.append(node.text);
     return "normal";
   }
   if (node instanceof OutputNode) {
-    output.Append(stringify(
+    output.append(stringify(
       evaluatePipeline(node.pipeline, scope, environment, overrides, defines),
       outputMode === "html" && node.escape,
     ));
@@ -184,7 +184,7 @@ export const renderTemplateNode = (
         );
       }
       const selected = invokedTemplate.withInheritedDefinitions(defines);
-      output.Append(outputMode === "html"
+      output.append(outputMode === "html"
         ? environment.renderTemplate(selected, dot, scope.site, overrides, scope.state)
         : environment.renderTextTemplate(selected, dot, scope.site, overrides, scope.state));
       return "normal";
@@ -241,7 +241,7 @@ export const renderTemplateNode = (
     const value = evaluatePipeline(node.expr, scope, environment, overrides, defines);
     if (value instanceof DeferredTemplateValue) {
       const deferred = value as DeferredTemplateValue;
-      output.Append(environment.registerDeferredTemplate(
+      output.append(environment.registerDeferredTemplate(
         deferred,
         node.body,
         defines,

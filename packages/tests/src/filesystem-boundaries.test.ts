@@ -1,6 +1,5 @@
 import { attribute } from "@tsonic/core/lang.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
-import { Exception } from "@tsonic/dotnet/System.js";
+import { join } from "node:path";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
 
 import {
@@ -11,7 +10,13 @@ import {
   listFilesTopDirectory,
   watchSnapshotsEqual,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import {
+  createDirectory,
+  createSymbolicLink,
+  createTestDirectory,
+  deleteTestDirectory,
+  writeTextFile,
+} from "./test-root.js";
 
 const captureTsumoError = (operation: () => void): TsumoError => {
   try {
@@ -20,33 +25,33 @@ const captureTsumoError = (operation: () => void): TsumoError => {
     if (error instanceof TsumoError) return error;
     throw error;
   }
-  throw new Exception("Expected a Tsumo error");
+  throw new Error("Expected a Tsumo error");
 };
 
 export class FilesystemBoundaryTests {
   recursive_discovery_is_sorted_and_rejects_links(): void {
     const root = createTestDirectory("filesystem-discovery");
     try {
-      const source = Path.Combine(root, "source");
-      const nested = Path.Combine(source, "a");
-      const outside = Path.Combine(root, "outside");
-      Directory.CreateDirectory(nested);
-      Directory.CreateDirectory(outside);
-      File.WriteAllText(Path.Combine(source, "z.txt"), "z");
-      File.WriteAllText(Path.Combine(nested, "b.txt"), "b");
-      File.WriteAllText(Path.Combine(nested, "a.txt"), "a");
-      File.WriteAllText(Path.Combine(outside, "outside.txt"), "outside");
+      const source = join(root, "source");
+      const nested = join(source, "a");
+      const outside = join(root, "outside");
+      createDirectory(nested);
+      createDirectory(outside);
+      writeTextFile(join(source, "z.txt"), "z");
+      writeTextFile(join(nested, "b.txt"), "b");
+      writeTextFile(join(nested, "a.txt"), "a");
+      writeTextFile(join(outside, "outside.txt"), "outside");
 
       Assert.Equal([
-        Path.Combine(nested, "a.txt"),
-        Path.Combine(nested, "b.txt"),
-        Path.Combine(source, "z.txt"),
+        join(nested, "a.txt"),
+        join(nested, "b.txt"),
+        join(source, "z.txt"),
       ], listFilesRecursive(source, "*.txt"));
-      Assert.Equal([Path.Combine(source, "z.txt")], listFilesTopDirectory(source, "*.txt"));
+      Assert.Equal([join(source, "z.txt")], listFilesTopDirectory(source, "*.txt"));
       Assert.Equal([nested], listDirectoriesTopDirectory(source));
 
-      const link = Path.Combine(source, "linked-directory");
-      Directory.CreateSymbolicLink(link, outside);
+      const link = join(source, "linked-directory");
+      createSymbolicLink(outside, link);
       const error = captureTsumoError(() => {
         listFilesRecursive(source, "*");
       });
@@ -60,18 +65,18 @@ export class FilesystemBoundaryTests {
   watch_snapshots_detect_file_changes_and_use_link_policy(): void {
     const root = createTestDirectory("watch-snapshot");
     try {
-      const watched = Path.Combine(root, "watched");
-      Directory.CreateDirectory(watched);
-      const file = Path.Combine(watched, "page.md");
-      File.WriteAllText(file, "before");
+      const watched = join(root, "watched");
+      createDirectory(watched);
+      const file = join(watched, "page.md");
+      writeTextFile(file, "before");
 
       const initial = createWatchSnapshot([watched]);
       Assert.True(watchSnapshotsEqual(initial, createWatchSnapshot([watched])));
-      File.WriteAllText(file, "after with a different size");
+      writeTextFile(file, "after with a different size");
       Assert.False(watchSnapshotsEqual(initial, createWatchSnapshot([watched])));
 
-      const link = Path.Combine(watched, "linked-file.md");
-      File.CreateSymbolicLink(link, file);
+      const link = join(watched, "linked-file.md");
+      createSymbolicLink(file, link);
       Assert.Equal(
         "TSUMO_FILESYSTEM_LINK_UNSUPPORTED",
         captureTsumoError(() => {

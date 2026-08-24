@@ -1,9 +1,9 @@
-import { Int32 } from "@tsonic/dotnet/System.js";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { renderMarkdownWithShortcodes } from "../../markdown.js";
 import { ParamKind } from "../../params.js";
 import { HtmlString } from "../../utils/html.js";
+import { parseInt32 } from "../../utils/int32.js";
 import { substringFrom } from "../../utils/strings.js";
 import { ShortcodeValue } from "../contexts.js";
 import type { TemplateEnvironment } from "../environment.js";
@@ -29,7 +29,6 @@ import {
 import { callPageCollectionMethod, getPageTerms, pageHasShortcode, toPages } from "./page-semantics.js";
 import { globMatch, resolvePageRef, tryGetPage } from "./path-semantics.js";
 import { resolvePath } from "./property-semantics.js";
-import { isNumberLiteral } from "./scalar-semantics.js";
 import { trimEndCharacter } from "./serialization.js";
 import { getUrlQueryValue } from "./url-query-semantics.js";
 import { templateValueDiagnosticKind } from "./value-diagnostics.js";
@@ -90,7 +89,8 @@ export const evalToken = (token: string, scope: RenderScope): TemplateValue => {
   if (t === "true") return new BoolValue(true);
   if (t === "false") return new BoolValue(false);
   if (t === "nil") return nil;
-  if (isNumberLiteral(t)) return new NumberValue(Int32.Parse(t));
+  const number = parseInt32(t);
+  if (number !== undefined) return new NumberValue(number);
   return new StringValue(t);
 };
 

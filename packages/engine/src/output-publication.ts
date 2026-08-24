@@ -32,14 +32,16 @@ export class OutputPublication {
       }
       throw error;
     }
-    if (previousOutputMoved && dirExists(this.backupDir)) rmSync(this.backupDir, true);
+    if (previousOutputMoved && dirExists(this.backupDir)) {
+      rmSync(this.backupDir, { recursive: true, force: true });
+    }
   }
 
   abort(): void {
-    if (dirExists(this.stagingDir)) rmSync(this.stagingDir, true);
+    if (dirExists(this.stagingDir)) rmSync(this.stagingDir, { recursive: true, force: true });
     if (!dirExists(this.backupDir)) return;
     if (dirExists(this.destinationDir)) {
-      rmSync(this.backupDir, true);
+      rmSync(this.backupDir, { recursive: true, force: true });
     } else {
       renameSync(this.backupDir, this.destinationDir);
     }
@@ -103,7 +105,7 @@ const recoverOutputPublication = (
   }
   if (dirExists(backupDir)) {
     if (dirExists(destinationDir)) {
-      rmSync(backupDir, true);
+      rmSync(backupDir, { recursive: true, force: true });
     } else {
       renameSync(backupDir, destinationDir);
     }
@@ -113,7 +115,7 @@ const recoverOutputPublication = (
   for (let index = 0; index < entries.length; index++) {
     const entry = entries[index]!;
     if (entry.startsWith(stageNamePrefix)) {
-      rmSync(resolve(parentDir, entry), true);
+      rmSync(resolve(parentDir, entry), { recursive: true, force: true });
     }
   }
 };

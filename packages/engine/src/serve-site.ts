@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extname, resolve, sep } from "node:path";
+import { setInterval } from "node:timers";
 import type { int32 } from "@tsonic/core/types.js";
 import { buildSite } from "./build-site.js";
 import { loadDocsConfig } from "./docs/config.js";

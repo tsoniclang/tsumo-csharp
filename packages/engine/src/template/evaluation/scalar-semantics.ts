@@ -1,20 +1,11 @@
-import { DateTime } from "@tsonic/dotnet/System.js";
 import { parseInt32, toInt32 } from "../../utils/int32.js";
-import { replaceText, substringCount, zeroPadInteger } from "../../utils/strings.js";
-import { StringBuilder } from "@tsonic/dotnet/System.Text.js";
+import { substringCount, zeroPadInteger } from "../../utils/strings.js";
+import { TextBuilder } from "../../utils/text-builder.js";
 import type { int32 } from "@tsonic/core/types.js";
 
 export const isNumberLiteral = (token: string): boolean => {
   if (token === "") return false;
   return parseInt32(token) !== undefined;
-};
-
-export const parseDateTime = (value: string): DateTime | undefined => {
-  try {
-    return DateTime.Parse(value);
-  } catch (_err) {
-    return undefined;
-  }
 };
 
 const longWeekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -102,96 +93,74 @@ export const formatDateTime = (value: string, layout: string): string | undefine
   const hour24 = substringCount(iso, 11, 2);
   const minute = substringCount(iso, 14, 2);
   const second = substringCount(iso, 17, 2);
-  const monthIndex: int32 = (parseInt32(month) ?? 1) - 1;
+  const monthIndex = (parseInt32(month) ?? 1) - 1;
   const hourValue = parseInt32(hour24) ?? 0;
   const hour12Value = hourValue % 12 === 0 ? 12 : hourValue % 12;
   const hour12 = hour12Value < 10 ? `0${hour12Value}` : `${hour12Value}`;
-  const weekday: int32 = weekdayIndex(milliseconds);
-  const output = new StringBuilder();
+  const weekday = weekdayIndex(milliseconds);
+  const output = new TextBuilder();
 
   let index = 0;
   while (index < layout.length) {
     const remaining = layout.slice(index);
     if (remaining.startsWith("Monday")) {
-      output.Append(longWeekdays[weekday]!);
+      output.append(longWeekdays[weekday]!);
       index += 6;
     } else if (remaining.startsWith("January")) {
-      output.Append(longMonths[monthIndex]!);
+      output.append(longMonths[monthIndex]!);
       index += 7;
     } else if (remaining.startsWith("2006")) {
-      output.Append(year);
+      output.append(year);
       index += 4;
     } else if (remaining.startsWith("Mon")) {
-      output.Append(shortWeekdays[weekday]!);
+      output.append(shortWeekdays[weekday]!);
       index += 3;
     } else if (remaining.startsWith("Jan")) {
-      output.Append(shortMonths[monthIndex]!);
+      output.append(shortMonths[monthIndex]!);
       index += 3;
     } else if (remaining.startsWith("PM")) {
-      output.Append(hourValue < 12 ? "AM" : "PM");
+      output.append(hourValue < 12 ? "AM" : "PM");
       index += 2;
     } else if (remaining.startsWith("pm")) {
-      output.Append(hourValue < 12 ? "am" : "pm");
+      output.append(hourValue < 12 ? "am" : "pm");
       index += 2;
     } else if (remaining.startsWith("06")) {
-      output.Append(year.slice(2));
+      output.append(year.slice(2));
       index += 2;
     } else if (remaining.startsWith("01")) {
-      output.Append(month);
+      output.append(month);
       index += 2;
     } else if (remaining.startsWith("02")) {
-      output.Append(day);
+      output.append(day);
       index += 2;
     } else if (remaining.startsWith("15")) {
-      output.Append(hour24);
+      output.append(hour24);
       index += 2;
     } else if (remaining.startsWith("03")) {
-      output.Append(hour12);
+      output.append(hour12);
       index += 2;
     } else if (remaining.startsWith("04")) {
-      output.Append(minute);
+      output.append(minute);
       index += 2;
     } else if (remaining.startsWith("05")) {
-      output.Append(second);
+      output.append(second);
       index += 2;
     } else if (remaining.startsWith("1")) {
-      output.Append(stripLeadingZero(month));
+      output.append(stripLeadingZero(month));
       index += 1;
     } else if (remaining.startsWith("2")) {
-      output.Append(stripLeadingZero(day));
+      output.append(stripLeadingZero(day));
       index += 1;
     } else if (remaining.startsWith("3")) {
-      output.Append(`${hour12Value}`);
+      output.append(`${hour12Value}`);
       index += 1;
     } else {
-      output.Append(substringCount(layout, index, 1));
+      output.append(substringCount(layout, index, 1));
       index += 1;
     }
   }
 
-  return output.ToString();
-};
-
-export const convertGoDateLayoutToDotNet = (layout: string): string => {
-  // Best-effort mapping for common Hugo layouts.
-  let f = layout;
-  f = replaceText(f, "Monday", "dddd");
-  f = replaceText(f, "Mon", "ddd");
-  f = replaceText(f, "January", "MMMM");
-  f = replaceText(f, "Jan", "MMM");
-  f = replaceText(f, "2006", "yyyy");
-  f = replaceText(f, "06", "yy");
-  f = replaceText(f, "02", "dd");
-  f = replaceText(f, "2", "d");
-  f = replaceText(f, "01", "MM");
-  f = replaceText(f, "1", "M");
-  f = replaceText(f, "15", "HH");
-  f = replaceText(f, "03", "hh");
-  f = replaceText(f, "3", "h");
-  f = replaceText(f, "04", "mm");
-  f = replaceText(f, "05", "ss");
-  f = replaceText(f, "PM", "tt");
-  return f;
+  return output.toString();
 };
 
 

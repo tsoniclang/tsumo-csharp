@@ -1,7 +1,6 @@
 import { attribute } from "@tsonic/core/lang.js";
-import { Exception } from "@tsonic/dotnet/System.js";
+import { join } from "node:path";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
-import { Directory, File, Path } from "@tsonic/dotnet/System.IO.js";
 import {
   collectShortcodeNames,
   DictValue,
@@ -13,7 +12,7 @@ import {
   StringValue,
   TemplateValue,
 } from "@tsumo/engine/testing.js";
-import { createTestDirectory, deleteTestDirectory } from "./test-root.js";
+import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
 import {
   captureDiagnostic, captureDiagnosticCode, createPage, createSite, render, renderWithRoot,
   TestTemplateEnvironment,
@@ -119,10 +118,10 @@ export class TemplateRuntimeTests {
 
   css_build_applies_its_closed_resource_options(): void {
     const root = createTestDirectory("template-css-build");
-    const siteDirectory = Path.Combine(root, "site");
-    const outputDirectory = Path.Combine(root, "output");
+    const siteDirectory = join(root, "site");
+    const outputDirectory = join(root, "output");
     try {
-      Directory.CreateDirectory(siteDirectory);
+      createDirectory(siteDirectory);
       const manager = new ResourceManager(siteDirectory, undefined, outputDirectory);
       const environment = new TestTemplateEnvironment(manager);
       const site = createSite();
@@ -152,13 +151,13 @@ export class TemplateRuntimeTests {
 
   i18n_layers_parse_structured_formats_and_render_plural_context(): void {
     const root = createTestDirectory("template-i18n");
-    const themeDirectory = Path.Combine(root, "theme");
-    const siteDirectory = Path.Combine(root, "site");
+    const themeDirectory = join(root, "theme");
+    const siteDirectory = join(root, "site");
     try {
-      Directory.CreateDirectory(themeDirectory);
-      Directory.CreateDirectory(siteDirectory);
-      File.WriteAllText(
-        Path.Combine(themeDirectory, "en.toml"),
+      createDirectory(themeDirectory);
+      createDirectory(siteDirectory);
+      writeTextFile(
+        join(themeDirectory, "en.toml"),
         "toggleMenu = \"Theme Menu\"\n" +
         "[footer]\n" +
         "builtWith = \"Built with {{ .Generator }}\"\n" +
@@ -166,12 +165,12 @@ export class TemplateRuntimeTests {
         "one = \"{{ .Count }} page\"\n" +
         "other = \"{{ .Count }} pages\"\n",
       );
-      File.WriteAllText(
-        Path.Combine(themeDirectory, "fr.json"),
+      writeTextFile(
+        join(themeDirectory, "fr.json"),
         "{\"local\":\"Locale française\"}",
       );
-      File.WriteAllText(
-        Path.Combine(siteDirectory, "en.yaml"),
+      writeTextFile(
+        join(siteDirectory, "en.yaml"),
         "- id: toggleMenu # site override\n" +
         "  translation: Site Menu\n" +
         "- id: legacy\n" +
@@ -250,7 +249,7 @@ export class TemplateRuntimeTests {
     const results = environment.finalizeDeferredTemplates();
     for (const token of results.keys()) {
       const result = results.get(token);
-      if (result === undefined) throw new Exception("Expected a finalized deferred-template result");
+      if (result === undefined) throw new Error("Expected a finalized deferred-template result");
       first = first.replaceAll(token, result);
       second = second.replaceAll(token, result);
     }
@@ -276,7 +275,7 @@ export class TemplateRuntimeTests {
     Assert.Equal(2, results.size);
     for (const token of results.keys()) {
       const result = results.get(token);
-      if (result === undefined) throw new Exception("Expected a finalized deferred-template result");
+      if (result === undefined) throw new Error("Expected a finalized deferred-template result");
       output = output.replaceAll(token, result);
     }
     Assert.Equal("first|second", output);
@@ -319,6 +318,9 @@ export class TemplateRuntimeTests {
 
   template_regular_expression_functions_preserve_matches_groups_and_limits(): void {
     Assert.Equal("ab,ac", render("{{ delimit (findRE `a.` `ab ac ad` 2) `,` }}"));
+    Assert.Equal("ab,ac,ad", render("{{ delimit (findRE `a.` `ab ac ad`) `,` }}"));
+    Assert.Equal("", render("{{ delimit (findRE `a.` `ab ac ad` 0) `,` }}"));
+    Assert.Equal(",,", render("{{ delimit (findRE `(?:)` `ab`) `,` }}"));
     Assert.Equal(
       "item42|item|42|item|42",
       render(
@@ -326,7 +328,22 @@ export class TemplateRuntimeTests {
         "{{ delimit . `|` }}|{{ index . 1 }}|{{ index . 2 }}{{ end }}",
       ),
     );
+    Assert.Equal(
+      "b|",
+      render("{{ range findRESubmatch `(a)?b` `b` }}{{ delimit . `|` }}{{ end }}"),
+    );
     Assert.Equal("x2 item3", render("{{ replaceRE `item` `x` `item2 item3` 1 }}"));
+    Assert.Equal("x2 x3", render("{{ replaceRE `item` `x` `item2 item3` }}"));
+    Assert.Equal("item2 item3", render("{{ replaceRE `item` `x` `item2 item3` 0 }}"));
+    Assert.Equal("&lt;&gt;a2", render("{{ replaceRE `(a)?b` `<$1>` `b` 1 }}{{ replaceRE `(a)` `$12` `a` 1 }}"));
+    Assert.Equal("a|$00", render("{{ replaceRE `(a)` `$01` `a` 1 }}|{{ replaceRE `(a)` `$00` `a` 1 }}"));
+    Assert.Equal(
+      "item-42-$-item42",
+      render("{{ replaceRE `(?<word>[a-z]+)([0-9]+)` `$<word>-$2-$$-$&` `item42` 1 }}"),
+    );
+    Assert.Equal("TSUMO_TEMPLATE_REGEXP_INVALID", captureDiagnosticCode(() => {
+      render("{{ findRE `(` `value` }}");
+    }));
   }
 
   template_scanning_preserves_unicode_scalars_and_utf16_locations(): void {

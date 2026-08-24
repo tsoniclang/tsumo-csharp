@@ -1,4 +1,4 @@
-import { Path } from "@tsonic/dotnet/System.IO.js";
+import { resolve } from "node:path";
 import { BuildRequest, BuildResult } from "./models.js";
 import { loadDocsConfig } from "./docs/config.js";
 import { buildDocsSite } from "./docs/builder.js";
@@ -6,7 +6,7 @@ import { beginOutputPublication } from "./output-publication.js";
 import { buildStandardSite } from "./build/standard-site.js";
 
 export const buildSite = (request: BuildRequest): BuildResult => {
-  const siteDir = Path.GetFullPath(request.siteDir);
+  const siteDir = resolve(request.siteDir);
   const docs = loadDocsConfig(siteDir);
   const publication = beginOutputPublication(
     siteDir,

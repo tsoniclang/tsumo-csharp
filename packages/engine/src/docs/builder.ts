@@ -1,13 +1,11 @@
-import { Path } from "@tsonic/dotnet/System.IO.js";
+import { join, resolve } from "node:path";
 import type { int32 } from "@tsonic/core/types.js";
-import { Markdown } from "@tsonic/dotnet/Markdig.js";
 import { renderWithBase, resolveThemeDir, selectTemplate } from "../build/layout.js";
 import { combineUrlPath } from "../utils/url-path.js";
 import { SiteOutputPlan } from "../build/output-plan.js";
 import { loadSiteConfig } from "../config.js";
 import { createTsumoError } from "../diagnostics.js";
 import { BuildEnvironment } from "../env.js";
-import { markdownPipeline } from "../markdown.js";
 import { BuildRequest, PageContext, PageFile, SiteContext } from "../models.js";
 import { ParamValue } from "../params.js";
 import { HtmlString } from "../utils/html.js";
@@ -38,7 +36,7 @@ import {
 import { renderSearchIndexJson, SearchDocument } from "./search-index.js";
 
 export const buildDocsSite = (request: BuildRequest, docsLoaded: LoadedDocsConfig, outDir: string): int32 => {
-  const siteDir = Path.GetFullPath(request.siteDir);
+  const siteDir = resolve(request.siteDir);
   const loaded = loadSiteConfig(siteDir);
   const config = loaded.config;
 
@@ -55,9 +53,9 @@ export const buildDocsSite = (request: BuildRequest, docsLoaded: LoadedDocsConfi
   const outputPlan = new SiteOutputPlan();
 
   if (themeDir !== undefined) {
-    outputPlan.addDirectory(Path.Combine(themeDir, "static"), "", "theme static files", "theme-static");
+    outputPlan.addDirectory(join(themeDir, "static"), "", "theme static files", "theme-static");
   }
-  outputPlan.addDirectory(Path.Combine(siteDir, "static"), "", "site static files", "site-static");
+  outputPlan.addDirectory(join(siteDir, "static"), "", "site static files", "site-static");
 
   const emptyPages: PageContext[] = [];
   const emptyTranslations: PageContext[] = [];
@@ -117,14 +115,14 @@ export const buildDocsSite = (request: BuildRequest, docsLoaded: LoadedDocsConfi
       );
       const content = new HtmlString(md.html);
       const summary = new HtmlString(md.summaryHtml);
-      const plainText = Markdown.ToPlainText(parsed.body, markdownPipeline);
+      const plainText = md.plainText;
 
       const baseName = withoutMarkdownExtension(r.fileName);
       const title = fm.title ?? humanizeSlug(baseName);
       const dateUtc = fm.date ?? source.modifiedAt;
       const dateString = dateUtc.toISOString();
       const lastmodString = source.modifiedAt.toISOString();
-      const file = new PageFile(Path.GetFullPath(r.sourcePath), r.dirKey === "" ? "" : r.dirKey + "/", baseName);
+      const file = new PageFile(resolve(r.sourcePath), r.dirKey === "" ? "" : r.dirKey + "/", baseName);
 
       const params = fm.Params;
       params.set("mount", ParamValue.string(mount.name));
@@ -267,13 +265,13 @@ export const buildDocsSite = (request: BuildRequest, docsLoaded: LoadedDocsConfi
           summary = new HtmlString(md.summaryHtml);
           description = fm.description ?? "";
           title = fm.title ?? title;
-          const plainText = Markdown.ToPlainText(parsed.body, markdownPipeline);
+          const plainText = md.plainText;
           plain = plainText;
           searchDocs.push(new SearchDocument(title, relPermalink, mount.name, plainText));
           const dateUtc = fm.date ?? idxRoute.modifiedAt;
           dateString = dateUtc.toISOString();
           lastmodString = idxRoute.modifiedAt.toISOString();
-          file = new PageFile(Path.GetFullPath(route.sourcePath), dirKey === "" ? "" : dirKey + "/", "_index");
+          file = new PageFile(resolve(route.sourcePath), dirKey === "" ? "" : dirKey + "/", "_index");
           params = fm.Params;
           params.set("relPath", ParamValue.string(route.relPath));
           const editUrl = createDocsEditUrl(mount, route.relPath);

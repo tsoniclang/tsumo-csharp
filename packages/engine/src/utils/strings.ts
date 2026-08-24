@@ -1,5 +1,4 @@
 import type { int32 } from "@tsonic/core/types.js";
-import { String as DotnetString } from "@tsonic/dotnet/System.js";
 import { createTsumoError } from "../diagnostics.js";
 
 function substringError(): void {
@@ -31,7 +30,7 @@ export const lastIndexOfText = (source: string, value: string): int32 => source.
 export const containsText = (source: string, value: string): boolean => source.includes(value);
 
 export const compareText = (left: string, right: string): int32 => {
-  return DotnetString.CompareOrdinal(left, right);
+  return left < right ? -1 : left > right ? 1 : 0;
 };
 
 export const substringFrom = (source: string, startIndex: int32): string => {
