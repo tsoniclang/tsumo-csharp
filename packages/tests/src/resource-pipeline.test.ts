@@ -4,7 +4,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { attribute } from "@tsonic/core/lang.js";
 import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
-import { runExternalProcess } from "../../engine/src/resources/external-process.js";
 
 import {
   createStringResource,
@@ -17,6 +16,7 @@ import {
   ResourceData,
   resourceGlobMatches,
   ResourceManager,
+  runExternalProcess,
   TsumoError,
 } from "@tsumo/engine/testing.js";
 import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
