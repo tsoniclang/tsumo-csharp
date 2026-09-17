@@ -19,7 +19,7 @@ TSONIC_PHASE_TIMINGS=1 \
 TSUMO_BUILD_LOG_DIR="$VERIFY_ROOT/tsonic" \
 bash scripts/build-tsonic.sh
 
-echo "=== parallel dotnet builds ==="
+echo "=== native solution build ==="
 TSUMO_DOTNET_LOG_DIR="$VERIFY_ROOT/dotnet" bash scripts/build-dotnet.sh
 
 echo "=== dotnet test ==="
@@ -43,8 +43,9 @@ fi
 "$AOT_BIN" --help >/dev/null
 NORMAL_OUT="$VERIFY_ROOT/normal-site"
 AOT_OUT="$VERIFY_ROOT/aot-site"
+FRAMEWORK="$(node scripts/project-framework.mjs cli)"
 SOURCE_DATE_EPOCH=1767225600 \
-  "$ROOT/packages/cli/bin/Debug/net10.0/tsumo" build \
+  "$ROOT/packages/cli/bin/Debug/$FRAMEWORK/tsumo" build \
   --source "$ROOT/examples/basic-blog" --destination "$NORMAL_OUT"
 SOURCE_DATE_EPOCH=1767225600 \
   "$AOT_BIN" build --source "$ROOT/examples/basic-blog" --destination "$AOT_OUT"

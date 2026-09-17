@@ -3,12 +3,13 @@ import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { projectFramework } from "../scripts/project-framework.mjs";
 
 export const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const testRunsRoot = join(repoRoot, ".temp/test-runs");
 
 export function tsumoBinary() {
-  const binary = join(repoRoot, "packages/cli/bin/Debug/net10.0/tsumo");
+  const binary = join(repoRoot, "packages/cli/bin/Debug", projectFramework(), "tsumo");
   if (!existsSync(binary)) {
     throw new Error("Built tsumo CLI not found. Run `npm run build` first.");
   }

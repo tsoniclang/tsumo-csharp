@@ -77,6 +77,22 @@ Sibling checkouts are installed via `file:` dependencies (`../tsonic`,
 
 ## Tests
 
+### Selecting a .NET framework
+
+The native runtimes arrive as source in the installed npm packages. They are
+built with Tsumo's selected framework; upgrading does not require replacement
+Tsonic runtime DLLs.
+
+To test .NET 11, select an installed SDK in `global.json`, set
+`targets[0].options.targetFramework` to `net11.0` in the engine, CLI and tests
+`tsonic.json` files, and set `TargetFramework` in the root `Directory.Build.props`
+to `net11.0`. The application and runtime import projects use that same value.
+Keep provider and native project selections equal. Resolve each new
+framework's NuGet lock once with `dotnet restore --force-evaluate` (include
+`--runtime linux-x64` for the CLI), then run `bash scripts/verify-all.sh`.
+The ordinary gate still uses locked restores. Executable lookups follow the
+selected framework, including the application tests and NativeAOT comparison.
+
 ```bash
 npm run test:dotnet   # Tsonic-authored xUnit tests through dotnet test
 npm test              # Node-driven end-to-end CLI/fixture tests

@@ -61,6 +61,23 @@
         "dependencies": {
           "PhotoSauce.MagicScaler": "[0.14.2]"
         }
+      },
+      "tsonic.csharp.js": {
+        "type": "Project",
+        "dependencies": {
+          "Tsonic.CSharp.Runtime": "[0.0.6, )"
+        }
+      },
+      "tsonic.csharp.node": {
+        "type": "Project",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "[2.4.0, )",
+          "Tsonic.CSharp.Js": "[0.0.9, )",
+          "Tsonic.CSharp.Runtime": "[0.0.6, )"
+        }
+      },
+      "tsonic.csharp.runtime": {
+        "type": "Project"
       }
     },
     "net10.0/linux-x64": {
