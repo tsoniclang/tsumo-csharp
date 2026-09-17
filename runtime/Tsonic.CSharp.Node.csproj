@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+  <PropertyGroup>
+    <DirectoryBuildPropsPath>$(MSBuildThisFileDirectory)../node_modules/@tsonic/csharp-nodejs/Directory.Build.props</DirectoryBuildPropsPath>
+    <TsonicRuntimeArtifactsPath>$(MSBuildThisFileDirectory)../.tsonic/cache/csharp/runtime/</TsonicRuntimeArtifactsPath>
+    <TsonicCsharpRuntimeProject>$(MSBuildThisFileDirectory)Tsonic.CSharp.Runtime.csproj</TsonicCsharpRuntimeProject>
+    <TsonicCsharpJsProject>$(MSBuildThisFileDirectory)Tsonic.CSharp.Js.csproj</TsonicCsharpJsProject>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)../node_modules/@tsonic/csharp-nodejs/csharp/src/Tsonic.CSharp.Node/Tsonic.CSharp.Node.csproj" />
+</Project>
