@@ -47,6 +47,7 @@ export { Template } from "./template/template.js";
 export { HtmlString } from "./utils/html.js";
 export { TextBuilder } from "./utils/text-builder.js";
 export { contentTypeForPath } from "./utils/mime.js";
+export { runExternalProcess } from "./resources/external-process.js";
 export { listDirectoriesTopDirectory, listFilesRecursive, listFilesTopDirectory } from "./fs.js";
 export { createWatchSnapshot, watchSnapshotsEqual } from "./watch-snapshot.js";
 export { I18nStore } from "./i18n.js";

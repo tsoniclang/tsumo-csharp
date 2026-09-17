@@ -16,6 +16,7 @@ import {
   ResourceData,
   resourceGlobMatches,
   ResourceManager,
+  runExternalProcess,
   TsumoError,
 } from "@tsumo/engine/testing.js";
 import { createDirectory, createTestDirectory, deleteTestDirectory, writeTextFile } from "./test-root.js";
@@ -31,6 +32,12 @@ const captureResourceDiagnostic = (operation: () => void): string => {
 };
 
 export class ResourcePipelineTests {
+  missing_external_tool_preserves_the_requested_diagnostic(): void {
+    Assert.Equal("TSUMO_TEST_TOOL_START_FAILED", captureResourceDiagnostic(() => {
+      runExternalProcess("__tsumo_missing_external_tool__", [], "test tool", "TSUMO_TEST_TOOL_START_FAILED");
+    }));
+  }
+
   relative_path_policy_rejects_every_escape_form(): void {
     Assert.Equal(
       "TSUMO_RESOURCE_PATH_ESCAPES_ROOT",
@@ -185,6 +192,7 @@ export class ResourcePipelineTests {
 }
 
 attribute<ResourcePipelineTests>().method((target) => target.relative_path_policy_rejects_every_escape_form).add(FactAttribute);
+attribute<ResourcePipelineTests>().method((target) => target.missing_external_tool_preserves_the_requested_diagnostic).add(FactAttribute);
 attribute<ResourcePipelineTests>().method((target) => target.glob_matching_is_segment_exact).add(FactAttribute);
 attribute<ResourcePipelineTests>().method((target) => target.image_dimensions_are_read_from_exact_file_signatures).add(FactAttribute);
 attribute<ResourcePipelineTests>().method((target) => target.utf8_validation_accepts_scalars_and_rejects_malformed_sequences).add(FactAttribute);

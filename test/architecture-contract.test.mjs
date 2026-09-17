@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -205,9 +205,14 @@ test("generated and investigation artifacts remain untracked and ignored", () =>
     path.endsWith(".dll")
   );
   assert.deepEqual(forbiddenTracked, []);
+  const scratch = join(repoRoot, ".temp");
+  mkdirSync(scratch, { recursive: true });
+  const ignoreRoot = mkdtempSync(join(scratch, "ignore-contract-"));
+  execFileSync("git", ["init", "--quiet", ignoreRoot]);
+  copyFileSync(join(repoRoot, ".gitignore"), join(ignoreRoot, ".gitignore"));
   for (const path of [".analysis/probe.md", ".temp/probe", "packages/engine/out/probe.cs"]) {
     const ignored = execFileSync("git", ["check-ignore", path], {
-      cwd: repoRoot,
+      cwd: ignoreRoot,
       encoding: "utf8",
     }).trim();
     assert.equal(ignored, path);

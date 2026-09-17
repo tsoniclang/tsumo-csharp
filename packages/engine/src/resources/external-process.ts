@@ -19,13 +19,16 @@ export const runExternalProcess = (
   startDiagnosticCode: string,
 ): ExternalProcessResult => {
   const result = spawnSync(executable, argumentsList);
-  const standardError = result.stderr.toString("utf8").trim();
-  if (result.status === null) {
+  const stderr = result.stderr;
+  const standardError = stderr === null ? "" : stderr.toString("utf8").trim();
+  const error = result.error;
+  if (error !== undefined || result.status === null) {
+    const detail = error === undefined ? standardError : error.message;
     throw createTsumoError(
       startDiagnosticCode,
-      standardError === ""
+      detail === ""
         ? `Failed to start ${toolName} '${executable}'`
-        : `Failed to start ${toolName} '${executable}': ${standardError}`,
+        : `Failed to start ${toolName} '${executable}': ${detail}`,
     );
   }
   return new ExternalProcessResult(result.status as int32, standardError);
