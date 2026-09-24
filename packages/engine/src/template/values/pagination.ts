@@ -18,14 +18,16 @@ export class PaginatorValue extends TemplateValue {
   }
 
   totalPages(): int32 {
-    if (this.sourcePages.length === 0) return 1;
-    return Math.ceil(this.sourcePages.length / this.pageSize) as int32;
+    const count = this.sourcePages.length as int32;
+    return count === 0 ? 1 : 1 + (count - 1) / this.pageSize;
   }
 
   pages(): PageContext[] {
-    const start: int32 = (this.pageNumber - 1) * this.pageSize;
-    const end: int32 = Math.min(start + this.pageSize, this.sourcePages.length) as int32;
+    const count = this.sourcePages.length as int32;
     const pages: PageContext[] = [];
+    if (count === 0 || this.pageNumber > this.totalPages()) return pages;
+    const start: int32 = (this.pageNumber - 1) * this.pageSize;
+    const end: int32 = start + (this.pageSize < count - start ? this.pageSize : count - start);
     for (let index: int32 = start; index < end; index++) pages.push(this.sourcePages[index]!);
     return pages;
   }

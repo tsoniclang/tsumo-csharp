@@ -7,6 +7,7 @@ import {
   MenuEntry,
   PageContext,
   PageValue,
+  PaginatorValue,
   ParamValue,
   parseTemplate,
   RenderScope,
@@ -19,6 +20,25 @@ import {
 } from "./template-test-harness.js";
 
 export class TemplatePageContextTests {
+  pagination_uses_exact_integer_ceiling_and_bounded_page_offsets(): void {
+    const site = createSite();
+    const first = createPage(site, "First", "", "page");
+    const second = createPage(site, "Second", "", "page");
+    const third = createPage(site, "Third", "", "page");
+    const paginator = new PaginatorValue([first, second, third], 2, 1, "/posts/");
+    Assert.True(paginator.totalPages() === 2);
+    Assert.True(paginator.pages().length === 2 && paginator.pages()[0] === first);
+    const last = paginator.withPageNumber(2);
+    Assert.True(last.pages().length === 1 && last.pages()[0] === third);
+    Assert.True(paginator.withPageNumber(2147483647).pages().length === 0);
+    const empty = new PaginatorValue([], 0, 0, "/");
+    Assert.True(empty.totalPages() === 1 && empty.pages().length === 0);
+    const exact = new PaginatorValue([first, second], 2, 1, "/");
+    Assert.True(exact.totalPages() === 1 && exact.pages().length === 2);
+    const wide = new PaginatorValue([first, second, third], 2147483647, 1, "/");
+    Assert.True(wide.totalPages() === 1 && wide.pages().length === 3);
+  }
+
   date_page_data_and_render_methods_use_typed_context(): void {
     Assert.Equal("2024-01-02", renderWithRoot("{{ .Format \"2006-01-02\" }}", new DateValue("2024-01-02T03:04:05Z")));
 
@@ -28,7 +48,21 @@ export class TemplatePageContextTests {
     older.Params.set("weight", ParamValue.number(20));
     newer.Params.set("weight", ParamValue.number(10));
     const root = createPage(site, "Home", "", "home");
+    Assert.Equal("0|0", renderWithRoot(
+      "{{ len .Pages.Reverse }}|{{ len (collections.Reverse .Pages) }}",
+      new PageValue(root),
+    ));
+    root.pages = [older];
+    Assert.Equal("Older|Older", renderWithRoot(
+      "{{ range .Pages.Reverse }}{{ .Title }}{{ end }}|{{ range (collections.Reverse .Pages) }}{{ .Title }}{{ end }}",
+      new PageValue(root),
+    ));
     root.pages = [older, newer];
+    Assert.Equal("NewerOlder|NewerOlder|OlderNewer", renderWithRoot(
+      "{{ range .Pages.Reverse }}{{ .Title }}{{ end }}|{{ range (collections.Reverse .Pages) }}{{ .Title }}{{ end }}|" +
+      "{{ range .Pages }}{{ .Title }}{{ end }}",
+      new PageValue(root),
+    ));
     const section = createPage(site, "Section", "", "section");
     root.pages.push(section);
     site.pages = root.pages;
@@ -189,3 +223,5 @@ attribute<TemplatePageContextTests>().method((target) => target.page_taxonomy_te
 attribute<TemplatePageContextTests>().method((target) => target.page_menu_methods_use_the_exact_menu_hierarchy).add(FactAttribute);
 attribute<TemplatePageContextTests>().method((target) => target.template_definitions_propagate_across_partial_boundaries).add(FactAttribute);
 attribute<TemplatePageContextTests>().method((target) => target.page_resources_use_the_published_bundle_inventory).add(FactAttribute);
+
+attribute<TemplatePageContextTests>().method((target) => target.pagination_uses_exact_integer_ceiling_and_bounded_page_offsets).add(FactAttribute);

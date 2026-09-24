@@ -86,17 +86,26 @@ export const createIntegerSequence = (args: TemplateValue[]): AnyArrayValue => {
 export const reverseTemplateCollection = (collection: TemplateValue): TemplateValue | undefined => {
   if (collection instanceof AnyArrayValue) {
     const result: TemplateValue[] = [];
-    for (let index = collection.value.length - 1; index >= 0; index--) result.push(collection.value[index]!);
+    for (let index = collection.value.length; index > 0;) {
+      index--;
+      result.push(collection.value[index]!);
+    }
     return new AnyArrayValue(result);
   }
   if (collection instanceof StringArrayValue) {
     const result: string[] = [];
-    for (let index = collection.value.length - 1; index >= 0; index--) result.push(collection.value[index]!);
+    for (let index = collection.value.length; index > 0;) {
+      index--;
+      result.push(collection.value[index]!);
+    }
     return new StringArrayValue(result);
   }
   if (collection instanceof PageArrayValue) {
     const result: PageContext[] = [];
-    for (let index = collection.value.length - 1; index >= 0; index--) result.push(collection.value[index]!);
+    for (let index = collection.value.length; index > 0;) {
+      index--;
+      result.push(collection.value[index]!);
+    }
     return new PageArrayValue(result);
   }
   return undefined;

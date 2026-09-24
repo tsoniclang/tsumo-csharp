@@ -122,8 +122,9 @@ const collectListRoutes = (inventory: ContentInventory): string[] => {
   for (const route of inventory.listPagesByRoute.keys()) addRouteWithParents(route, routeSet);
   const routes = Array.from(routeSet.keys());
   routes.sort((left: string, right: string) => {
-    const depth = splitSitePath(left).length - splitSitePath(right).length;
-    return depth !== 0 ? depth : compareSitePaths(left, right);
+    const leftDepth = splitSitePath(left).length;
+    const rightDepth = splitSitePath(right).length;
+    return leftDepth === rightDepth ? compareSitePaths(left, right) : leftDepth < rightDepth ? -1 : 1;
   });
   return routes;
 };
@@ -210,7 +211,8 @@ const findContentParent = (
   listPagesByRoute: Map<string, PageContext>,
   home: PageContext,
 ): PageContext => {
-  for (let index = listRoutes.length - 1; index >= 0; index--) {
+  for (let index = listRoutes.length; index > 0;) {
+    index--;
     const route = listRoutes[index]!;
     if (route === "") continue;
     if (page.relPermalink.startsWith("/" + route + "/")) {
@@ -231,7 +233,10 @@ const createAncestors = (parent: PageContext | undefined): PageContext[] => {
     current = ancestor.parent;
   }
   const ancestors: PageContext[] = [];
-  for (let index = reversed.length - 1; index >= 0; index--) ancestors.push(reversed[index]!);
+  for (let index = reversed.length; index > 0;) {
+    index--;
+    ancestors.push(reversed[index]!);
+  }
   return ancestors;
 };
 

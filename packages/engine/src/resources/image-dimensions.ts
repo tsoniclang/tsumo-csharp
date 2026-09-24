@@ -6,8 +6,6 @@ const shift2: int32 = 2;
 const shift6: int32 = 6;
 const shift8: int32 = 8;
 const shift10: int32 = 10;
-const shift16: int32 = 16;
-const shift24: int32 = 24;
 
 const parsePngDimensions = (bytes: Buffer): ImageDimensions | undefined => {
   if (bytes.length < 24) return undefined;
@@ -20,23 +18,16 @@ const parsePngDimensions = (bytes: Buffer): ImageDimensions | undefined => {
     return undefined;
   }
 
-  const width: int32 =
-    (bytes.readUInt8(16) << shift24) |
-    (bytes.readUInt8(17) << shift16) |
-    (bytes.readUInt8(18) << shift8) |
-    bytes.readUInt8(19);
-  const height: int32 =
-    (bytes.readUInt8(20) << shift24) |
-    (bytes.readUInt8(21) << shift16) |
-    (bytes.readUInt8(22) << shift8) |
-    bytes.readUInt8(23);
-  return new ImageDimensions(width, height);
+  const width = bytes.readUInt32BE(16);
+  const height = bytes.readUInt32BE(20);
+  if (width > 2147483647 || height > 2147483647) return undefined;
+  return new ImageDimensions(width as int32, height as int32);
 };
 
 const parseJpegDimensions = (bytes: Buffer): ImageDimensions | undefined => {
   if (bytes.length < 2 || bytes.readUInt8(0) !== 0xff || bytes.readUInt8(1) !== 0xd8) return undefined;
 
-  let index = 2;
+  let index: int32 = 2;
   while (index < bytes.length - 1) {
     if (bytes.readUInt8(index) !== 0xff) {
       index++;
@@ -46,8 +37,8 @@ const parseJpegDimensions = (bytes: Buffer): ImageDimensions | undefined => {
     const marker = bytes.readUInt8(index + 1);
     if (marker === 0xc0 || marker === 0xc2) {
       if (index + 9 >= bytes.length) return undefined;
-      const height: int32 = (bytes.readUInt8(index + 5) << shift8) | bytes.readUInt8(index + 6);
-      const width: int32 = (bytes.readUInt8(index + 7) << shift8) | bytes.readUInt8(index + 8);
+      const height: int32 = bytes.readUInt16BE(index + 5);
+      const width: int32 = bytes.readUInt16BE(index + 7);
       return new ImageDimensions(width, height);
     }
 
@@ -56,7 +47,7 @@ const parseJpegDimensions = (bytes: Buffer): ImageDimensions | undefined => {
       continue;
     }
     if (index + 4 >= bytes.length) return undefined;
-    const length: int32 = (bytes.readUInt8(index + 2) << shift8) | bytes.readUInt8(index + 3);
+    const length: int32 = bytes.readUInt16BE(index + 2);
     if (length < 2) return undefined;
     index += 2 + length;
   }
@@ -67,8 +58,8 @@ const parseGifDimensions = (bytes: Buffer): ImageDimensions | undefined => {
   if (bytes.length < 10) return undefined;
   if (bytes.readUInt8(0) !== 71 || bytes.readUInt8(1) !== 73 || bytes.readUInt8(2) !== 70) return undefined;
 
-  const width: int32 = bytes.readUInt8(6) | (bytes.readUInt8(7) << shift8);
-  const height: int32 = bytes.readUInt8(8) | (bytes.readUInt8(9) << shift8);
+  const width: int32 = bytes.readUInt16LE(6);
+  const height: int32 = bytes.readUInt16LE(8);
   return new ImageDimensions(width, height);
 };
 
@@ -94,8 +85,8 @@ const parseWebpDimensions = (bytes: Buffer): ImageDimensions | undefined => {
     bytes.readUInt8(14) === 56 &&
     bytes.readUInt8(15) === 32
   ) {
-    const width: int32 = (bytes.readUInt8(26) | (bytes.readUInt8(27) << shift8)) & 0x3fff;
-    const height: int32 = (bytes.readUInt8(28) | (bytes.readUInt8(29) << shift8)) & 0x3fff;
+    const width: int32 = bytes.readUInt16LE(26) & 0x3fff;
+    const height: int32 = bytes.readUInt16LE(28) & 0x3fff;
     return new ImageDimensions(width, height);
   }
 

@@ -60,7 +60,8 @@ const protectStandardShortcodes = (
   }
 
   let source = text;
-  for (let i = calls.length - 1; i >= 0; i--) {
+  for (let i = calls.length; i > 0;) {
+    i--;
     const call = calls[i]!;
     source = substringCount(source, 0, call.startIndex) + replacements[i]!.marker + substringFrom(source, call.endIndex);
   }

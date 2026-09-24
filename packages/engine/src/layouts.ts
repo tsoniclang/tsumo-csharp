@@ -39,7 +39,8 @@ export class LayoutEnvironment extends TemplateEnvironment {
     }
 
     if (mounts !== undefined) {
-      for (let i = mounts.length - 1; i >= 0; i--) {
+      for (let i = mounts.length; i > 0;) {
+        i--;
         const mount = mounts[i]!;
         if (mount.target !== "i18n") continue;
         const mountPath = isAbsolute(mount.source) ? mount.source : join(siteDir, mount.source);

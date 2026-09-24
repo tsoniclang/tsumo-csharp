@@ -79,6 +79,20 @@ export class ResourcePipelineTests {
     const dimensions = parseImageDimensions(png);
     Assert.True(dimensions !== undefined && dimensions.width === 2 && dimensions.height === 3);
     Assert.True(parseImageDimensions(Buffer.from([1, 2, 3])) === undefined);
+
+    const images = [
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 1, 44, 0, 0, 3, 232]),
+      Buffer.from([71, 73, 70, 56, 57, 97, 44, 1, 232, 3]),
+      Buffer.from([255, 216, 255, 192, 0, 8, 8, 3, 232, 1, 44, 3]),
+      Buffer.from([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80, 86, 80, 56, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 1, 232, 3]),
+      Buffer.from([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80, 86, 80, 56, 76, 0, 0, 0, 0, 47, 43, 193, 249, 0]),
+    ];
+    for (const image of images) {
+      const measured = parseImageDimensions(image);
+      Assert.True(measured !== undefined && measured.width === 300 && measured.height === 1000);
+    }
+    const oversized = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 128, 0, 0, 0, 0, 0, 0, 1]);
+    Assert.True(parseImageDimensions(oversized) === undefined);
   }
 
   utf8_validation_accepts_scalars_and_rejects_malformed_sequences(): void {
