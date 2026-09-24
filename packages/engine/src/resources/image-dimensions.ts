@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import type { int32, nativeUint } from "@tsonic/core/types.js";
+import type { int32 } from "@tsonic/core/types.js";
 import { ImageDimensions } from "./models.js";
 
 const shift2: int32 = 2;
@@ -27,7 +27,7 @@ const parsePngDimensions = (bytes: Buffer): ImageDimensions | undefined => {
 const parseJpegDimensions = (bytes: Buffer): ImageDimensions | undefined => {
   if (bytes.length < 2 || bytes.readUInt8(0) !== 0xff || bytes.readUInt8(1) !== 0xd8) return undefined;
 
-  let index: nativeUint = 2;
+  let index: int32 = 2;
   while (index < bytes.length - 1) {
     if (bytes.readUInt8(index) !== 0xff) {
       index++;
@@ -47,7 +47,7 @@ const parseJpegDimensions = (bytes: Buffer): ImageDimensions | undefined => {
       continue;
     }
     if (index + 4 >= bytes.length) return undefined;
-    const length: nativeUint = bytes.readUInt16BE(index + 2);
+    const length: int32 = bytes.readUInt16BE(index + 2);
     if (length < 2) return undefined;
     index += 2 + length;
   }
