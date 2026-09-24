@@ -77,6 +77,13 @@ Sibling checkouts are installed via `file:` dependencies (`../tsonic`,
 
 ## Tests
 
+`TSUMO_TSONIC_WORKERS` limits concurrent source-generation projects. It defaults
+to the admitted workspace test workers, or the machine's available CPUs.
+`TSUMO_NATIVE_JOBS` controls the standalone native verification phase after
+generation finishes. It defaults to the workspace CPU budget, or available CPUs.
+Both settings require positive integers. The complete gate retains every native,
+application and release check regardless of the selected concurrency.
+
 ### Selecting a .NET framework
 
 The native runtimes arrive as source in the installed npm packages. They are
