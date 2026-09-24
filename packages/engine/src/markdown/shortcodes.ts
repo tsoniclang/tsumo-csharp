@@ -106,7 +106,8 @@ export const processShortcodeCalls = (
   }
 
   let result = text;
-  for (let i = calls.length - 1; i >= 0; i--) {
+  for (let i = calls.length; i > 0;) {
+    i--;
     const call = calls[i]!;
     result = substringCount(result, 0, call.startIndex) + replacements[i]! + substringFrom(result, call.endIndex);
   }

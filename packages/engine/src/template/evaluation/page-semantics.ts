@@ -171,7 +171,10 @@ export const sortPagesByWeight = (pages: PageContext[]): PageContext[] => {
 export const reversePages = (pages: PageContext[]): PageContext[] => {
   const len = pages.length;
   const reversed: PageContext[] = [];
-  for (let i = len - 1; i >= 0; i--) reversed.push(pages[i]!);
+  for (let i = len; i > 0;) {
+    i--;
+    reversed.push(pages[i]!);
+  }
   return reversed;
 };
 

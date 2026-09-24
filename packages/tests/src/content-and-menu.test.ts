@@ -215,6 +215,7 @@ export class ContentAndMenuTests {
 
       const config = new SiteConfig("Test", "https://example.invalid/", "en", undefined, undefined);
       const graph = createStandardPageGraph(config, discoverContent(root, false));
+      Assert.Equal("|posts|posts/series", graph.listRoutes.join("|"));
       const taxonomies = createStandardTaxonomies(graph);
       const page = graph.contentPages[0]!;
       const parent = page.parent;

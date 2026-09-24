@@ -5,6 +5,8 @@ import {
   collectShortcodeNames,
   DictValue,
   I18nStore,
+  LayoutEnvironment,
+  ModuleMount,
   PageValue,
   parseShortcodes,
   parseTemplate,
@@ -202,6 +204,16 @@ export class TemplateRuntimeTests {
       );
 
       const store = new I18nStore();
+      const noMounts = new LayoutEnvironment(root, undefined, []);
+      Assert.Equal("toggleMenu", noMounts.i18nStore.translate("en", "toggleMenu"));
+      const oneMount = new LayoutEnvironment(root, undefined, [new ModuleMount(siteDirectory, "i18n")]);
+      Assert.Equal("Site Menu", oneMount.i18nStore.translate("en", "toggleMenu"));
+      const layeredMounts = new LayoutEnvironment(root, undefined, [
+        new ModuleMount(themeDirectory, "i18n"),
+        new ModuleMount(siteDirectory, "i18n"),
+        new ModuleMount(siteDirectory, "unrelated"),
+      ]);
+      Assert.Equal("Theme Menu", layeredMounts.i18nStore.translate("en", "toggleMenu"));
       store.loadFromDir(themeDirectory);
       store.loadFromDir(siteDirectory);
       Assert.Equal("Site Menu", store.translate("en-US", "toggleMenu"));
