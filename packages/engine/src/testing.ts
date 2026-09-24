@@ -68,6 +68,7 @@ export {
   PageGroupValue,
   PageDataValue,
   PageValue,
+  PaginatorValue,
   StringValue,
   TemplateValue,
 } from "./template/values.js";
