@@ -8,7 +8,7 @@ import {
 } from "../values.js";
 import { nil } from "../runtime-helpers.js";
 
-export const jsonToTemplateValue = (value: JsonValue): TemplateValue => {
+export function jsonToTemplateValue(value: JsonValue): TemplateValue {
   if (value instanceof JsonNull) return nil;
   if (value instanceof JsonBool) return new BoolValue(value.value);
   if (value instanceof JsonNumber) {
@@ -40,4 +40,4 @@ export const jsonToTemplateValue = (value: JsonValue): TemplateValue => {
     return new DictValue(fields);
   }
   throw createTsumoError("TSUMO_TEMPLATE_UNMARSHAL_VALUE_INVALID", "Structured data contains an unknown value kind");
-};
+}
