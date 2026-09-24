@@ -1,8 +1,8 @@
-import { TextBuilder } from "../../utils/text-builder.js";
+import { plainifyText } from "./text-compatibility.js";
 import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { PageContext } from "../../models.js";
-import { codePointAtText, nextCodePointIndex, substringCount, substringFrom } from "../../utils/strings.js";
+import { substringCount, substringFrom } from "../../utils/strings.js";
 import {
   AnyArrayValue, BoolValue, DictValue, NumberValue, PageArrayValue, PageValue,
   NilValue, StringArrayValue, StringValue, TemplateValue,
@@ -422,24 +422,7 @@ export const callCollectionFunction = (
   }
 
   if (name === "plainify" && args.length >= 1) {
-    const v = args[0]!;
-    const s = toPlainString(v);
-    // Deterministic markup stripping for Tsumo's plainify subset.
-    const sb = new TextBuilder();
-    let inTag = false;
-    for (let i: int32 = 0; i < s.length; i = nextCodePointIndex(s, i)) {
-      const ch = codePointAtText(s, i);
-      if (ch === "<") {
-        inTag = true;
-        continue;
-      }
-      if (ch === ">") {
-        inTag = false;
-        continue;
-      }
-      if (!inTag) sb.append(ch);
-    }
-    return new StringValue(sb.toString());
+    return new StringValue(plainifyText(toPlainString(args[0]!)));
   }
 
   if (name === "cond" && args.length >= 3) {

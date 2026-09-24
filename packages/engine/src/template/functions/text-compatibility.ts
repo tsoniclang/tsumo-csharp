@@ -1,3 +1,26 @@
+import type { int32 } from "@tsonic/core/types.js";
+import { TextBuilder } from "../../utils/text-builder.js";
+import { codePointAtText, nextCodePointIndex } from "../../utils/strings.js";
+
+export const plainifyText = (input: string): string => {
+  const result = new TextBuilder();
+  const textLength = input.length as int32;
+  let inTag = false;
+  for (let index: int32 = 0; index < textLength; index = nextCodePointIndex(input, index)) {
+    const character = codePointAtText(input, index);
+    if (character === "<") {
+      inTag = true;
+      continue;
+    }
+    if (character === ">") {
+      inTag = false;
+      continue;
+    }
+    if (!inTag) result.append(character);
+  }
+  return result.toString();
+};
+
 const createEmojiShortcodes = (): Map<string, string> => {
   const result = new Map<string, string>();
   result.set("heart", "❤️");
