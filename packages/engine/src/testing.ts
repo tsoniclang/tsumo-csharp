@@ -49,7 +49,7 @@ export { TextBuilder } from "./utils/text-builder.js";
 export { contentTypeForPath } from "./utils/mime.js";
 export { runExternalProcess } from "./resources/external-process.js";
 export { listDirectoriesTopDirectory, listFilesRecursive, listFilesTopDirectory } from "./fs.js";
-export { createWatchSnapshot, watchSnapshotsEqual } from "./watch-snapshot.js";
+export { WatchEntryState, createWatchSnapshot, watchSnapshotsEqual } from "./watch-snapshot.js";
 export { I18nStore } from "./i18n.js";
 export { LayoutEnvironment } from "./layouts.js";
 export { loadSiteData } from "./template/data-loader.js";

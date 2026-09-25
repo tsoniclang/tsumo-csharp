@@ -94,24 +94,11 @@ export const sortPagesByDate = (pages: PageContext[], field: string): PageContex
   const copy: PageContext[] = [];
   for (let i = 0; i < pages.length; i++) copy.push(pages[i]!);
 
-  // Simple bubble sort for stability and tsonic compatibility
-  const arr = copy;
-  const len = arr.length;
-  for (let i = 0; i < len; i++) {
-    for (let j = 0; j < len - i - 1; j++) {
-      const a = arr[j]!;
-      const b = arr[j + 1]!;
-      // Use date for all fields (publishdate falls back to date)
-      const dateA = field === "lastmod" ? a.lastmod : a.date;
-      const dateB = field === "lastmod" ? b.lastmod : b.date;
-      // Compare dates (ascending order)
-      if (compareText(dateA, dateB) > 0) {
-        arr[j] = b;
-        arr[j + 1] = a;
-      }
-    }
-  }
-  return arr;
+  copy.sort((left, right) => compareText(
+    field === "lastmod" ? left.lastmod : left.date,
+    field === "lastmod" ? right.lastmod : right.date,
+  ));
+  return copy;
 };
 
 /**
@@ -122,20 +109,8 @@ export const sortPagesByTitle = (pages: PageContext[]): PageContext[] => {
   const copy: PageContext[] = [];
   for (let i = 0; i < pages.length; i++) copy.push(pages[i]!);
 
-  // Simple bubble sort
-  const arr = copy;
-  const len = arr.length;
-  for (let i = 0; i < len; i++) {
-    for (let j = 0; j < len - i - 1; j++) {
-      const a = arr[j]!;
-      const b = arr[j + 1]!;
-      if (compareText(a.title, b.title) > 0) {
-        arr[j] = b;
-        arr[j + 1] = a;
-      }
-    }
-  }
-  return arr;
+  copy.sort((left, right) => compareText(left.title, right.title));
+  return copy;
 };
 
 /**
@@ -153,14 +128,11 @@ export const pageWeight = (page: PageContext): int32 => {
 
 export const sortPagesByWeight = (pages: PageContext[]): PageContext[] => {
   const sorted = copyPageArray(pages);
-  for (let left: int32 = 0; left < sorted.length; left++) {
-    for (let right: int32 = left + 1; right < sorted.length; right++) {
-      if (pageWeight(sorted[left]!) <= pageWeight(sorted[right]!)) continue;
-      const temporary = sorted[left]!;
-      sorted[left] = sorted[right]!;
-      sorted[right] = temporary;
-    }
-  }
+  sorted.sort((left, right) => {
+    const leftWeight = pageWeight(left);
+    const rightWeight = pageWeight(right);
+    return leftWeight < rightWeight ? -1 : leftWeight > rightWeight ? 1 : 0;
+  });
   return sorted;
 };
 
@@ -255,19 +227,11 @@ const defaultRelatedPages = (pages: PageContext[], source: PageContext): PageArr
     const score: int32 = sharesKeyword ? (sharesTags ? 180 : 100) : sharesTags ? 80 : 0;
     if (score >= 80) candidates.push(new RelatedPageCandidate(candidate, score));
   }
-  for (let left = 0; left < candidates.length; left++) {
-    for (let right = left + 1; right < candidates.length; right++) {
-      const leftCandidate = candidates[left]!;
-      const rightCandidate = candidates[right]!;
-      const dateOrder = compareText(leftCandidate.page.date, rightCandidate.page.date);
-      const pathOrder = compareText(leftCandidate.page.relPermalink, rightCandidate.page.relPermalink);
-      if (leftCandidate.score > rightCandidate.score) continue;
-      if (leftCandidate.score === rightCandidate.score && dateOrder > 0) continue;
-      if (leftCandidate.score === rightCandidate.score && dateOrder === 0 && pathOrder <= 0) continue;
-      candidates[left] = rightCandidate;
-      candidates[right] = leftCandidate;
-    }
-  }
+  candidates.sort((left, right) => {
+    if (left.score !== right.score) return left.score > right.score ? -1 : 1;
+    const dateOrder = compareText(right.page.date, left.page.date);
+    return dateOrder !== 0 ? dateOrder : compareText(left.page.relPermalink, right.page.relPermalink);
+  });
   const result: PageContext[] = [];
   for (let index = 0; index < candidates.length; index++) result.push(candidates[index]!.page);
   return new PageArrayValue(result);
@@ -323,15 +287,9 @@ const groupPagesByField = (pages: PageContext[], field: string, ascending: boole
     }
     selected.pages.push(page);
   }
-  for (let left: int32 = 0; left < groups.length; left++) {
-    for (let right: int32 = left + 1; right < groups.length; right++) {
-      const comparison = compareValues(groups[left]!.key, groups[right]!.key);
-      if ((ascending && comparison <= 0) || (!ascending && comparison >= 0)) continue;
-      const temporary = groups[left]!;
-      groups[left] = groups[right]!;
-      groups[right] = temporary;
-    }
-  }
+  groups.sort((left, right) => ascending
+    ? compareValues(left.key, right.key)
+    : compareValues(right.key, left.key));
   const result: TemplateValue[] = [];
   for (let index: int32 = 0; index < groups.length; index++) {
     const group = groups[index]!;
@@ -394,23 +352,13 @@ export const groupPagesByDate = (
   layout: string,
   ascending: boolean,
 ): AnyArrayValue => {
-  const ordered = copyPageArray(pages);
-  for (let left = 0; left < ordered.length; left++) {
-    for (let right = left + 1; right < ordered.length; right++) {
-      const leftDate = pageDateMilliseconds(ordered[left]!);
-      const rightDate = pageDateMilliseconds(ordered[right]!);
-      const swap = ascending ? leftDate > rightDate : leftDate < rightDate;
-      if (!swap) continue;
-      const temporary = ordered[left]!;
-      ordered[left] = ordered[right]!;
-      ordered[right] = temporary;
-    }
-  }
+  const ordered: [number, PageContext][] = pages.map(page => [pageDateMilliseconds(page), page]);
+  ordered.sort((left, right) => ascending ? left[0] - right[0] : right[0] - left[0]);
 
   const groups = new Map<string, PageContext[]>();
   const keys: string[] = [];
   for (let index = 0; index < ordered.length; index++) {
-    const page = ordered[index]!;
+    const page = ordered[index]![1];
     const key = formatPageDate(page.date, layout);
     if (key === undefined) continue;
     let group = groups.get(key);

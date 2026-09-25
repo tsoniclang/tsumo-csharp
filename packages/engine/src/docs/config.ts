@@ -1,3 +1,4 @@
+import type { int32 } from "@tsonic/core/types.js";
 import { isAbsolute, join, resolve } from "node:path";
 import { createTsumoError, TsumoError } from "../diagnostics.js";
 import { fileExists, readTextFile } from "../fs.js";
@@ -86,7 +87,7 @@ const resolveSourceDir = (siteDir: string, raw: string, path: string): string =>
   return isAbsolute(raw) ? resolve(raw) : resolve(join(siteDir, raw));
 };
 
-const parseMount = (siteDir: string, value: JsonValue, index: number, path: string): DocsMountConfig => {
+const parseMount = (siteDir: string, value: JsonValue, index: int32, path: string): DocsMountConfig => {
   const context = `mounts[${index}]`;
   if (!(value instanceof JsonObject)) {
     throw docsConfigError("TSUMO_DOCS_CONFIG_TYPE", `${context} must be an object`, path);

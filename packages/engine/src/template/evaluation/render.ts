@@ -1,4 +1,5 @@
 import { TextBuilder } from "../../utils/text-builder.js";
+import type { int32 } from "@tsonic/core/types.js";
 import { createTsumoError } from "../../diagnostics.js";
 import { compareText } from "../../utils/strings.js";
 import type { TemplateEnvironment } from "../environment.js";
@@ -44,66 +45,60 @@ export type TemplateOutputMode = "html" | "text";
 export type TemplateControlFlow = "normal" | "break" | "continue";
 
 class TemplateRangeValues {
-  keys: TemplateValue[];
+  keys: string[] | undefined;
   values: TemplateValue[];
 
-  constructor(keys: TemplateValue[], values: TemplateValue[]) {
+  constructor(values: TemplateValue[], keys?: string[]) {
     this.keys = keys;
     this.values = values;
   }
 }
 
-const arrayKeys = (length: number): TemplateValue[] => {
-  const keys: TemplateValue[] = [];
-  for (let index = 0; index < length; index++) keys.push(new NumberValue(index));
-  return keys;
-};
-
-const toRangeValues = (value: TemplateValue): TemplateRangeValues | undefined => {
+const toRangeValues = (value: TemplateValue, needsKeys: boolean): TemplateRangeValues | undefined => {
   const values: TemplateValue[] = [];
   if (value instanceof PageArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(new PageValue(value.value[index]!));
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof StringArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(new StringValue(value.value[index]!));
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof DocsMountArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(new DocsMountValue(value.value[index]!));
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof NavArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(new NavItemValue(value.value[index]!));
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof SitesArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(new SiteValue(value.value[index]!));
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof MenuArrayValue) {
     for (let index = 0; index < value.value.length; index++) {
       values.push(new MenuEntryValue(value.value[index]!, value.site));
     }
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof AnyArrayValue) {
     for (let index = 0; index < value.value.length; index++) values.push(value.value[index]!);
-    return new TemplateRangeValues(arrayKeys(values.length), values);
+    return new TemplateRangeValues(values);
   }
   if (value instanceof DictValue) {
     const names: string[] = [];
     for (const name of value.value.keys()) names.push(name);
     names.sort((left, right) => compareText(left, right));
-    const keys: TemplateValue[] = [];
+    const keys: string[] | undefined = needsKeys ? [] : undefined;
     for (let index = 0; index < names.length; index++) {
       const name = names[index]!;
       const item = value.value.get(name);
       if (item === undefined) continue;
-      keys.push(new StringValue(name));
+      if (keys !== undefined) keys.push(name);
       values.push(item);
     }
-    return new TemplateRangeValues(keys, values);
+    return new TemplateRangeValues(values, keys);
   }
   return undefined;
 };
@@ -218,18 +213,24 @@ export const renderTemplateNode = (
     );
   }
   if (node instanceof RangeNode) {
-    const range = toRangeValues(evaluatePipeline(node.expr, scope, environment, overrides, defines));
+    const valueVariable = node.valueVar;
+    const keyVariable = node.keyVar;
+    const range = toRangeValues(
+      evaluatePipeline(node.expr, scope, environment, overrides, defines),
+      keyVariable !== undefined && valueVariable !== undefined,
+    );
     if (range === undefined || range.values.length === 0) {
       return renderTemplateNodes(node.elseBody, output, scope, environment, overrides, defines, outputMode);
     }
     for (let index = 0; index < range.values.length; index++) {
       const value = range.values[index]!;
       const itemScope = new RenderScope(scope.root, value, scope.site, scope.env, scope);
-      const valueVariable = node.valueVar;
-      const keyVariable = node.keyVar;
       if (valueVariable !== undefined) itemScope.declareVar(valueVariable, value);
       if (keyVariable !== undefined && valueVariable !== undefined) {
-        itemScope.declareVar(keyVariable, range.keys[index]!);
+        const keys = range.keys;
+        itemScope.declareVar(keyVariable, keys === undefined
+          ? new NumberValue(index as int32)
+          : new StringValue(keys[index]!));
       }
       const control = renderTemplateNodes(node.body, output, itemScope, environment, overrides, defines, outputMode);
       if (control === "break") return "normal";

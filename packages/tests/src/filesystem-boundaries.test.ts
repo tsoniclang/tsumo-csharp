@@ -4,6 +4,7 @@ import { Assert, FactAttribute } from "@tsonic/dotnet/Xunit.js";
 
 import {
   TsumoError,
+  WatchEntryState,
   createWatchSnapshot,
   listDirectoriesTopDirectory,
   listFilesRecursive,
@@ -29,6 +30,21 @@ const captureTsumoError = (operation: () => void): TsumoError => {
 };
 
 export class FilesystemBoundaryTests {
+  watch_snapshot_sizes_preserve_adjacent_native_integers(): void {
+    const first = new Map<string, WatchEntryState>();
+    const same = new Map<string, WatchEntryState>();
+    const next = new Map<string, WatchEntryState>();
+    first.set("large", new WatchEntryState(123.5, 9007199254740992));
+    same.set("large", new WatchEntryState(123.5, 9007199254740992));
+    const adjacent = new WatchEntryState(123.5, 9007199254740992);
+    adjacent.size++;
+    next.set("large", adjacent);
+    Assert.True(watchSnapshotsEqual(first, same));
+    Assert.False(watchSnapshotsEqual(first, next));
+    same.set("large", new WatchEntryState(123.75, 9007199254740992));
+    Assert.False(watchSnapshotsEqual(first, same));
+  }
+
   recursive_discovery_is_sorted_and_rejects_links(): void {
     const root = createTestDirectory("filesystem-discovery");
     try {
@@ -90,4 +106,5 @@ export class FilesystemBoundaryTests {
 }
 
 attribute<FilesystemBoundaryTests>().method((target) => target.recursive_discovery_is_sorted_and_rejects_links).add(FactAttribute);
+attribute<FilesystemBoundaryTests>().method((target) => target.watch_snapshot_sizes_preserve_adjacent_native_integers).add(FactAttribute);
 attribute<FilesystemBoundaryTests>().method((target) => target.watch_snapshots_detect_file_changes_and_use_link_policy).add(FactAttribute);

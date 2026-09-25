@@ -1,11 +1,11 @@
-import { statSync } from "node:fs";
+import { statSync, type Stats } from "node:fs";
 import { dirExists, fileExists, listFilesRecursive, rejectFilesystemLink } from "./fs.js";
 
 export class WatchEntryState {
   modifiedAt: number;
-  size: number;
+  size: Stats["size"];
 
-  constructor(modifiedAt: number, size: number) {
+  constructor(modifiedAt: number, size: Stats["size"]) {
     this.modifiedAt = modifiedAt;
     this.size = size;
   }
