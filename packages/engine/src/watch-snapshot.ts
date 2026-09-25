@@ -1,12 +1,11 @@
-import { statSync } from "node:fs";
-import type { uint64 } from "@tsonic/core/types.js";
+import { statSync, type Stats } from "node:fs";
 import { dirExists, fileExists, listFilesRecursive, rejectFilesystemLink } from "./fs.js";
 
 export class WatchEntryState {
   modifiedAt: number;
-  size: uint64;
+  size: Stats["size"];
 
-  constructor(modifiedAt: number, size: uint64) {
+  constructor(modifiedAt: number, size: Stats["size"]) {
     this.modifiedAt = modifiedAt;
     this.size = size;
   }

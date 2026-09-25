@@ -34,12 +34,14 @@ export class FilesystemBoundaryTests {
     const first = new Map<string, WatchEntryState>();
     const same = new Map<string, WatchEntryState>();
     const next = new Map<string, WatchEntryState>();
-    first.set("large", new WatchEntryState(123.5, 9007199254740992n));
-    same.set("large", new WatchEntryState(123.5, 9007199254740992n));
-    next.set("large", new WatchEntryState(123.5, 9007199254740993n));
+    first.set("large", new WatchEntryState(123.5, 9007199254740992));
+    same.set("large", new WatchEntryState(123.5, 9007199254740992));
+    const adjacent = new WatchEntryState(123.5, 9007199254740992);
+    adjacent.size++;
+    next.set("large", adjacent);
     Assert.True(watchSnapshotsEqual(first, same));
     Assert.False(watchSnapshotsEqual(first, next));
-    same.set("large", new WatchEntryState(123.75, 9007199254740992n));
+    same.set("large", new WatchEntryState(123.75, 9007199254740992));
     Assert.False(watchSnapshotsEqual(first, same));
   }
 
