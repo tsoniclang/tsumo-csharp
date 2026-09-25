@@ -20,6 +20,35 @@ import {
 } from "./template-test-harness.js";
 
 export class TemplatePageContextTests {
+  page_sorts_preserve_ties_and_do_not_mutate_the_source(): void {
+    const site = createSite();
+    const root = createPage(site, "Home", "", "home");
+    const first = createPage(site, "B", "2024-01-01T00:00:00Z", "page");
+    const second = createPage(site, "A", "2024-01-01T00:00:00Z", "page");
+    const last = createPage(site, "C", "2025-01-01T00:00:00Z", "page");
+    first.Params.set("weight", ParamValue.number(-2147483648));
+    second.Params.set("weight", ParamValue.number(-2147483648));
+    last.Params.set("weight", ParamValue.number(2147483647));
+    root.pages = [last, first, second];
+    Assert.Equal("BAC|ABC|BAC|CBA", renderWithRoot(
+      '{{ range .Pages.ByDate }}{{ .Title }}{{ end }}|' +
+      '{{ range .Pages.ByTitle }}{{ .Title }}{{ end }}|' +
+      '{{ range .Pages.ByWeight }}{{ .Title }}{{ end }}|' +
+      '{{ range .Pages }}{{ .Title }}{{ end }}',
+      new PageValue(root),
+    ));
+    Assert.Equal("2024:BA;2025:C;|2025:C;2024:BA;", renderWithRoot(
+      '{{ range .Pages.GroupByDate "2006" "asc" }}{{ .Key }}:{{ range .Pages }}{{ .Title }}{{ end }};{{ end }}|' +
+      '{{ range .Pages.GroupByDate "2006" "desc" }}{{ .Key }}:{{ range .Pages }}{{ .Title }}{{ end }};{{ end }}',
+      new PageValue(root),
+    ));
+    root.pages = [];
+    Assert.Equal("empty", renderWithRoot(
+      '{{ range .Pages.ByWeight }}unexpected{{ else }}empty{{ end }}',
+      new PageValue(root),
+    ));
+  }
+
   pagination_uses_exact_integer_ceiling_and_bounded_page_offsets(): void {
     const site = createSite();
     const first = createPage(site, "First", "", "page");
@@ -225,3 +254,4 @@ attribute<TemplatePageContextTests>().method((target) => target.template_definit
 attribute<TemplatePageContextTests>().method((target) => target.page_resources_use_the_published_bundle_inventory).add(FactAttribute);
 
 attribute<TemplatePageContextTests>().method((target) => target.pagination_uses_exact_integer_ceiling_and_bounded_page_offsets).add(FactAttribute);
+attribute<TemplatePageContextTests>().method((target) => target.page_sorts_preserve_ties_and_do_not_mutate_the_source).add(FactAttribute);

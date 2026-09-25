@@ -11,17 +11,11 @@ const siteStores = new Map<SiteContext, ScratchStore>();
 
 export const taxonomyTermsByCount = (terms: Map<string, PageContext[]>): AnyArrayValue => {
   const names = Array.from(terms.keys());
-  for (let left = 0; left < names.length; left++) {
-    for (let right = left + 1; right < names.length; right++) {
-      const leftName = names[left]!;
-      const rightName = names[right]!;
-      const leftCount = terms.get(leftName)?.length ?? 0;
-      const rightCount = terms.get(rightName)?.length ?? 0;
-      if (leftCount > rightCount || (leftCount === rightCount && compareText(leftName, rightName) <= 0)) continue;
-      names[left] = rightName;
-      names[right] = leftName;
-    }
-  }
+  names.sort((left, right) => {
+    const leftCount = terms.get(left)?.length ?? 0;
+    const rightCount = terms.get(right)?.length ?? 0;
+    return leftCount > rightCount ? -1 : leftCount < rightCount ? 1 : compareText(left, right);
+  });
 
   const values: TemplateValue[] = [];
   for (let index = 0; index < names.length; index++) {

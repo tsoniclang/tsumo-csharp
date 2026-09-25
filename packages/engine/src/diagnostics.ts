@@ -1,3 +1,5 @@
+import type { int32 } from "@tsonic/core/types.js";
+
 export type TsumoDiagnosticCategory = "error" | "warning";
 
 export class TsumoDiagnostic {
@@ -5,16 +7,16 @@ export class TsumoDiagnostic {
   category: TsumoDiagnosticCategory;
   message: string;
   file: string | undefined;
-  line: number | undefined;
-  column: number | undefined;
+  line: int32 | undefined;
+  column: int32 | undefined;
 
   constructor(
     code: string,
     category: TsumoDiagnosticCategory,
     message: string,
     file?: string,
-    line?: number,
-    column?: number,
+    line?: int32,
+    column?: int32,
   ) {
     this.code = code;
     this.category = category;
@@ -48,8 +50,8 @@ export function createTsumoError(
   code: string,
   message: string,
   file?: string,
-  line?: number,
-  column?: number,
+  line?: int32,
+  column?: int32,
 ): TsumoError {
   return new TsumoError(new TsumoDiagnostic(code, "error", message, file, line, column));
 }
