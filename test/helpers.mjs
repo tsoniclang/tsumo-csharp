@@ -16,16 +16,16 @@ export function tsumoBinary() {
   return binary;
 }
 
-export function runTsumo(args, options = {}) {
+export function runTsumo(args, { env = process.env } = {}) {
   return spawnSync(tsumoBinary(), args, {
     encoding: "utf8",
     timeout: 120_000,
-    ...options,
+    env,
   });
 }
 
-export function spawnTsumo(args, options = {}) {
-  return spawn(tsumoBinary(), args, { stdio: ["ignore", "pipe", "pipe"], ...options });
+export function spawnTsumo(args) {
+  return spawn(tsumoBinary(), args, { stdio: ["ignore", "pipe", "pipe"] });
 }
 
 export function makeTempDir(prefix) {
